@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"image/png"
 	"io"
 	"log"
-	"math"
 	"net/http"
 
 	"github.com/Balise42/marzipango.git/fractales"
@@ -15,10 +13,11 @@ import (
 
 const left = -2.0
 const right = 1.0
-const width = 900
-const height = 600
+const width = 1800
+const height = 1200
 const top = 1.0
 const bottom = -1.0
+const maxiter = 100
 
 func scale(x int, y int) complex128 {
 	real := left + float64(x)/width*(right-left)
@@ -26,38 +25,31 @@ func scale(x int, y int) complex128 {
 	return complex(real, im)
 }
 
+func generateImage(w io.Writer) error {
+	img := image.NewRGBA64(image.Rect(0, 0, width, height))
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			img.Set(x, y, fractales.MandelbrotColor(scale(x, y), maxiter))
+		}
+	}
+
+	return png.Encode(w, img)
+}
+
 func mandelbrot(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	err := generateImage(w)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	fmt.Println("Image served")
 }
 
 func main() {
 	http.HandleFunc("/", mandelbrot)
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
-}
-
-func generateImage(w io.Writer) error {
-	img := image.NewRGBA64(image.Rect(0, 0, width, height))
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
-			img.Set(x, y, computeColor(scale(x, y)))
-		}
-	}
-
-	err := png.Encode(w, img)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func computeColor(z complex128) color.Color {
-	return color.RGBA64{uint16((fractales.ComputeValue(z) / 100) * math.MaxUint16), 0, 0, math.MaxUint16}
 }
