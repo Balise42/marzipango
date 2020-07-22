@@ -5,8 +5,10 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"io"
+	"log"
 	"math"
-	"os"
+	"net/http"
 
 	"github.com/Balise42/marzipango.git/fractales"
 )
@@ -24,28 +26,32 @@ func scale(x int, y int) complex128 {
 	return complex(real, im)
 }
 
-func main() {
-	err := generateImage()
+func mandelbrot(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	err := generateImage(w)
 	if err != nil {
-		fmt.Println("Error occured: ", err)
-		os.Exit(-1)
+		http.Error(w, err.Error(), 500)
 	}
-	fmt.Println("Image generated")
+	fmt.Println("Image served")
 }
 
-func generateImage() error {
+func main() {
+	http.HandleFunc("/", mandelbrot)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe:", err)
+	}
+}
+
+func generateImage(w io.Writer) error {
 	img := image.NewRGBA64(image.Rect(0, 0, width, height))
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
 			img.Set(x, y, computeColor(scale(x, y)))
 		}
 	}
-	f, err := os.Create("mandelbrot.png")
-	defer f.Close()
-	if err != nil {
-		return err
-	}
-	err = png.Encode(f, img)
+
+	err := png.Encode(w, img)
 	if err != nil {
 		return err
 	}
