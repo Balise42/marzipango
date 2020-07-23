@@ -10,6 +10,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Balise42/marzipango.git/fractales"
 	"github.com/Balise42/marzipango.git/palettes"
@@ -31,6 +32,7 @@ type imageParams struct {
 	width   int
 	height  int
 	maxIter int
+	palette palettes.Colors
 }
 
 func scale(x int, y int, pos imageParams) complex128 {
@@ -41,14 +43,11 @@ func scale(x int, y int, pos imageParams) complex128 {
 }
 
 func generateImage(w io.Writer, params imageParams) error {
-	listCols := color.Palette{color.RGBA64{0, 0, 0, math.MaxUint16}, color.RGBA64{0, 0, math.MaxUint16, math.MaxUint16}, color.RGBA64{math.MaxUint16, math.MaxUint16, math.MaxUint16, math.MaxUint16}, color.RGBA64{0, math.MaxUint16, math.MaxUint16, math.MaxUint16}}
-	colors := palettes.Colors{color.Black, listCols}
-
 	img := image.NewRGBA64(image.Rect(0, 0, params.width, params.height))
 	for x := 0; x < params.width; x++ {
 		for y := 0; y < params.height; y++ {
 			value, converge := fractales.MandelbrotValue(scale(x, y, params), params.maxIter)
-			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, colors))
+			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.palette))
 		}
 	}
 
@@ -71,6 +70,30 @@ func parseFloatParam(r *http.Request, name string, fallback float64) float64 {
 	return param
 }
 
+func parseColor(name string) color.Color {
+	color, ok := palettes.ColorNames[name]
+	if ok {
+		return color
+	}
+	return palettes.Black
+}
+
+func parsePalette(r *http.Request, name string, fallback palettes.Colors) palettes.Colors {
+	param := r.URL.Query().Get(name)
+	if len(param) < 1 {
+		return fallback
+	}
+
+	paramList := strings.Split(param, ",")
+	divergence := parseColor(paramList[0])
+	listColors := make([]color.Color, len(paramList)-1)
+	for i := 1; i < len(paramList); i++ {
+		listColors[i-1] = parseColor(paramList[i])
+	}
+
+	return palettes.Colors{Divergence: divergence, ListColors: listColors}
+}
+
 func mandelbrot(w http.ResponseWriter, r *http.Request) {
 	imgWidth := parseIntParam(r, "width", width)
 	imgHeight := parseIntParam(r, "height", height)
@@ -80,7 +103,11 @@ func mandelbrot(w http.ResponseWriter, r *http.Request) {
 	imgRight := parseFloatParam(r, "right", right)
 	imgMaxIter := parseIntParam(r, "maxiter", maxiter)
 
-	imageParams := imageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter}
+	listCols := color.Palette{color.RGBA64{0, 0, 0, math.MaxUint16}, color.RGBA64{0, 0, math.MaxUint16, math.MaxUint16}, color.RGBA64{math.MaxUint16, math.MaxUint16, math.MaxUint16, math.MaxUint16}, color.RGBA64{0, math.MaxUint16, math.MaxUint16, math.MaxUint16}}
+	palette := palettes.Colors{Divergence: color.Black, ListColors: listCols}
+	imgPalette := parsePalette(r, "palette", palette)
+
+	imageParams := imageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette}
 
 	w.Header().Set("Content-Type", "image/png")
 	err := generateImage(w, imageParams)
