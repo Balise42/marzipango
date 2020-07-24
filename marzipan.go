@@ -7,7 +7,6 @@ import (
 	"image/png"
 	"io"
 	"log"
-	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -103,7 +102,7 @@ func mandelbrot(w http.ResponseWriter, r *http.Request) {
 	imgRight := parseFloatParam(r, "right", right)
 	imgMaxIter := parseIntParam(r, "maxiter", maxiter)
 
-	listCols := color.Palette{color.RGBA64{0, 0, 0, math.MaxUint16}, color.RGBA64{0, 0, math.MaxUint16, math.MaxUint16}, color.RGBA64{math.MaxUint16, math.MaxUint16, math.MaxUint16, math.MaxUint16}, color.RGBA64{0, math.MaxUint16, math.MaxUint16, math.MaxUint16}}
+	listCols := color.Palette{palettes.White, palettes.Black, palettes.White}
 	palette := palettes.Colors{Divergence: color.Black, ListColors: listCols}
 	imgPalette := parsePalette(r, "palette", palette)
 

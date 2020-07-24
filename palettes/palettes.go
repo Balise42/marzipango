@@ -45,24 +45,10 @@ func ColorFromContinuousPalette(value float64, converge bool, palette Colors) co
 	c1r, c1g, c1b, _ := palette.ListColors[colorIndex].RGBA()
 	c2r, c2g, c2b, _ := palette.ListColors[colorIndex+1].RGBA()
 
-	var r, g, b uint16
-	if c1r > c2r {
-		r = uint16(float64(c2r) + normalizedColor*float64(c1r-c2r))
-	} else {
-		r = uint16(float64(c1r) + normalizedColor*float64(c2r-c1r))
-	}
+	var r, g, b int16
+	r = int16(float64(c2r)*normalizedColor + float64(c1r)*(1-normalizedColor))
+	g = int16(float64(c2g)*normalizedColor + float64(c1g)*(1-normalizedColor))
+	b = int16(float64(c2b)*normalizedColor + float64(c1b)*(1-normalizedColor))
 
-	if c1g > c2g {
-		g = uint16(float64(c2g) + normalizedColor*float64(c1g-c2g))
-	} else {
-		g = uint16(float64(c1g) + normalizedColor*float64(c2g-c1g))
-	}
-
-	if c1b > c2b {
-		b = uint16(float64(c2b) + normalizedColor*float64(c1b-c2b))
-	} else {
-		b = uint16(float64(c1b) + normalizedColor*float64(c2b-c1b))
-	}
-
-	return color.RGBA64{r, g, b, 0xffff}
+	return color.RGBA64{uint16(r), uint16(g), uint16(b), 0xffff}
 }
