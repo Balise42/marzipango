@@ -8,8 +8,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/Balise42/marzipango.git/fractales"
 	"github.com/Balise42/marzipango.git/palettes"
@@ -42,15 +44,28 @@ func scale(x int, y int, pos imageParams) complex128 {
 }
 
 func generateImage(w io.Writer, params imageParams) error {
+	var wg sync.WaitGroup
 	img := image.NewRGBA64(image.Rect(0, 0, params.width, params.height))
 	for x := 0; x < params.width; x++ {
-		for y := 0; y < params.height; y++ {
-			value, converge := fractales.MandelbrotValue(scale(x, y, params), params.maxIter)
-			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.palette))
+		var numRows = params.height / runtime.NumCPU()
+		for cpu := 0; cpu < runtime.NumCPU()-1; cpu++ {
+			wg.Add(1)
+			go computeColumn(x, numRows*cpu, numRows*(cpu+1), params, img, &wg)
 		}
+		wg.Add(1)
+		go computeColumn(x, numRows*(runtime.NumCPU()-1), params.height, params, img, &wg)
 	}
+	wg.Wait()
 
 	return png.Encode(w, img)
+}
+
+func computeColumn(x int, ymin int, ymax int, params imageParams, img *image.RGBA64, wg *sync.WaitGroup) {
+	for y := ymin; y < ymax; y++ {
+		value, converge := fractales.MandelbrotValue(scale(x, y, params), params.maxIter)
+		img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.palette))
+	}
+	wg.Done()
 }
 
 func parseIntParam(r *http.Request, name string, fallback int) int {
@@ -100,7 +115,7 @@ func parseImageSize(r *http.Request) (int, int) {
 			return param, param
 		}
 	}
-	return parseIntParam(r, "width,", width), parseIntParam(r, "height", height)
+	return parseIntParam(r, "width", width), parseIntParam(r, "height", height)
 }
 
 func parseImageCoords(r *http.Request) (float64, float64, float64, float64) {
