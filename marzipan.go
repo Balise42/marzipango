@@ -100,7 +100,7 @@ func parseImageSize(r *http.Request) (int, int) {
 			return param, param
 		}
 	}
-	return parseIntParam(r, "width,", width), parseIntParam(r, "height", height)
+	return parseIntParam(r, "width", width), parseIntParam(r, "height", height)
 }
 
 func parseImageCoords(r *http.Request) (float64, float64, float64, float64) {
