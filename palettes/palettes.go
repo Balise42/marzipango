@@ -2,6 +2,7 @@ package palettes
 
 import (
 	"image/color"
+	"math"
 )
 
 var Blue = color.RGBA64{0, 0, 0xffff, 0xffff}
@@ -27,10 +28,11 @@ var ColorNames = map[string]color.Color{
 type Colors struct {
 	Divergence color.Color
 	ListColors []color.Color
+	MaxValue   int
 }
 
 // ColorFromContinuousPalette returns the color corresponding to the value from 0 to 1 (0 is the first color of the palette, 1 is the last color of the palette)
-func ColorFromContinuousPalette(value float64, converge bool, palette Colors) color.Color {
+func ColorFromContinuousPalette(rawValue float64, converge bool, palette Colors) color.Color {
 	if !converge {
 		return palette.Divergence
 	}
@@ -39,7 +41,9 @@ func ColorFromContinuousPalette(value float64, converge bool, palette Colors) co
 		return palette.ListColors[0]
 	}
 
-	colorIndex := int(float64((len(palette.ListColors) - 1)) * value)
+	value := math.Mod(rawValue, float64(palette.MaxValue)) / float64(palette.MaxValue)
+
+	colorIndex := (int(float64((len(palette.ListColors) - 1)) * value)) % (len(palette.ListColors) - 1)
 	normalizedColor := float64((len(palette.ListColors)-1))*value - float64(colorIndex)
 
 	c1r, c1g, c1b, _ := palette.ListColors[colorIndex].RGBA()

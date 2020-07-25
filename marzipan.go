@@ -90,7 +90,7 @@ func parsePalette(r *http.Request, name string, fallback palettes.Colors) palett
 		listColors[i-1] = parseColor(paramList[i])
 	}
 
-	return palettes.Colors{Divergence: divergence, ListColors: listColors}
+	return palettes.Colors{Divergence: divergence, ListColors: listColors, MaxValue: 100}
 }
 
 func mandelbrot(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,7 @@ func mandelbrot(w http.ResponseWriter, r *http.Request) {
 	imgMaxIter := parseIntParam(r, "maxiter", maxiter)
 
 	listCols := color.Palette{palettes.White, palettes.Black, palettes.White}
-	palette := palettes.Colors{Divergence: color.Black, ListColors: listCols}
+	palette := palettes.Colors{Divergence: color.Black, ListColors: listCols, MaxValue: 100}
 	imgPalette := parsePalette(r, "palette", palette)
 
 	imageParams := imageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette}
