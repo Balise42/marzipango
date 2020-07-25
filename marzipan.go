@@ -93,13 +93,29 @@ func parsePalette(r *http.Request, name string, fallback palettes.Colors) palett
 	return palettes.Colors{Divergence: divergence, ListColors: listColors, MaxValue: 100}
 }
 
+func parseImageSize(r *http.Request) (int, int) {
+	if r.URL.Query().Get("size") != "" {
+		param, err := strconv.Atoi(r.URL.Query().Get("size"))
+		if err == nil {
+			return param, param
+		}
+	}
+	return parseIntParam(r, "width,", width), parseIntParam(r, "height", height)
+}
+
+func parseImageCoords(r *http.Request) (float64, float64, float64, float64) {
+	if r.URL.Query().Get("x") != "" && r.URL.Query().Get("y") != "" && r.URL.Query().Get("window") != "" {
+		x := parseFloatParam(r, "x", 0)
+		y := parseFloatParam(r, "y", 0)
+		space := parseFloatParam(r, "window", 1)
+		return x - space, x + space, y - space, y + space
+	}
+	return parseFloatParam(r, "left", left), parseFloatParam(r, "right", right), parseFloatParam(r, "top", top), parseFloatParam(r, "bottom", bottom)
+}
+
 func mandelbrot(w http.ResponseWriter, r *http.Request) {
-	imgWidth := parseIntParam(r, "width", width)
-	imgHeight := parseIntParam(r, "height", height)
-	imgTop := parseFloatParam(r, "top", top)
-	imgLeft := parseFloatParam(r, "left", left)
-	imgBottom := parseFloatParam(r, "bottom", bottom)
-	imgRight := parseFloatParam(r, "right", right)
+	imgWidth, imgHeight := parseImageSize(r)
+	imgLeft, imgRight, imgTop, imgBottom := parseImageCoords(r)
 	imgMaxIter := parseIntParam(r, "maxiter", maxiter)
 
 	listCols := color.Palette{palettes.White, palettes.Black, palettes.White}
