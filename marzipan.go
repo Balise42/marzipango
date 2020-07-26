@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"image/png"
@@ -14,6 +15,12 @@ import (
 	"github.com/Balise42/marzipango/params"
 	"github.com/Balise42/marzipango/parsing"
 )
+
+var (
+	port     = flag.Int("port", 8080, "Webserver port to listen on.")
+	hostname = flag.String("hostname", "localhost", "Host to listen on.")
+)
+
 
 func generateImage(w io.Writer, params params.ImageParams, comp fractales.Computation) error {
 	var wg sync.WaitGroup
@@ -45,8 +52,11 @@ func fractale(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	flag.Parse()
 	http.HandleFunc("/", fractale)
-	err := http.ListenAndServe("localhost:8080", nil)
+	address := fmt.Sprintf("%s:%d", *hostname, *port)
+	fmt.Printf("Listening on http://%s ...\n", address)
+	err := http.ListenAndServe(address, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
