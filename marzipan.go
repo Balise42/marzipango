@@ -25,6 +25,9 @@ const top = 1.0
 const bottom = -1.0
 const maxiter = 100
 
+// Computation fills in image pixels according to parameters
+type Computation func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup)
+
 type imageParams struct {
 	left    float64
 	right   float64
@@ -43,21 +46,41 @@ func scale(x int, y int, pos imageParams) complex128 {
 	return complex(real, im)
 }
 
-func generateImage(w io.Writer, params imageParams) error {
+func generateImage(w io.Writer, params imageParams, comp Computation) error {
 	var wg sync.WaitGroup
 	img := image.NewRGBA64(image.Rect(0, 0, params.width, params.height))
 	for x := 0; x < params.width; x++ {
 		var numRows = params.height / runtime.NumCPU()
 		for cpu := 0; cpu < runtime.NumCPU()-1; cpu++ {
 			wg.Add(1)
-			go computeColumn(x, numRows*cpu, numRows*(cpu+1), params, img, &wg)
+			go comp(x, numRows*cpu, numRows*(cpu+1), img, &wg)
 		}
 		wg.Add(1)
-		go computeColumn(x, numRows*(runtime.NumCPU()-1), params.height, params, img, &wg)
+		go comp(x, numRows*(runtime.NumCPU()-1), params.height, img, &wg)
 	}
 	wg.Wait()
 
 	return png.Encode(w, img)
+}
+
+func computeMandelbrotWithContinuousPalette(params imageParams) Computation {
+	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
+		for y := ymin; y < ymax; y++ {
+			value, converge := fractales.MandelbrotValue(scale(x, y, params), params.maxIter)
+			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.palette))
+		}
+		wg.Done()
+	}
+}
+
+func computeJuliaWithContinuousPalette(params imageParams) Computation {
+	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
+		for y := ymin; y < ymax; y++ {
+			value, converge := fractales.JuliaValue(scale(x, y, params), params.maxIter)
+			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.palette))
+		}
+		wg.Done()
+	}
 }
 
 func computeColumn(x int, ymin int, ymax int, params imageParams, img *image.RGBA64, wg *sync.WaitGroup) {
@@ -128,7 +151,7 @@ func parseImageCoords(r *http.Request) (float64, float64, float64, float64) {
 	return parseFloatParam(r, "left", left), parseFloatParam(r, "right", right), parseFloatParam(r, "top", top), parseFloatParam(r, "bottom", bottom)
 }
 
-func mandelbrot(w http.ResponseWriter, r *http.Request) {
+func parseComputation(r *http.Request) (Computation, imageParams) {
 	imgWidth, imgHeight := parseImageSize(r)
 	imgLeft, imgRight, imgTop, imgBottom := parseImageCoords(r)
 	imgMaxIter := parseIntParam(r, "maxiter", maxiter)
@@ -139,8 +162,18 @@ func mandelbrot(w http.ResponseWriter, r *http.Request) {
 
 	imageParams := imageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette}
 
+	if r.URL.Query().Get("type") == "julia" {
+		return computeJuliaWithContinuousPalette(imageParams), imageParams
+	} else {
+		return computeMandelbrotWithContinuousPalette(imageParams), imageParams
+	}
+}
+
+func fractale(w http.ResponseWriter, r *http.Request) {
+	comp, imageParams := parseComputation(r)
+
 	w.Header().Set("Content-Type", "image/png")
-	err := generateImage(w, imageParams)
+	err := generateImage(w, imageParams, comp)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -149,7 +182,7 @@ func mandelbrot(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", mandelbrot)
+	http.HandleFunc("/", fractale)
 	err := http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
