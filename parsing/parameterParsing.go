@@ -86,6 +86,6 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 	if r.URL.Query().Get("type") == "julia" {
 		return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
 	} else {
-		return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
+		return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams), imageParams
 	}
 }

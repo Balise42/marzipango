@@ -37,3 +37,15 @@ func ComputeJuliaWithContinuousPalette(params params.ImageParams) Computation {
 		wg.Done()
 	}
 }
+
+func ComputeOrbitMandelbrotWithContinuousPalette(params params.ImageParams) Computation {
+	orbits := make([]Orbit, 1)
+	orbits[0] = CreatePointOrbit(0.5, -0.7, float64(params.MaxIter))
+	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
+		for y := ymin; y < ymax; y++ {
+			value, converge := MandelbrotOrbitValue(scale(x, y, params), params.MaxIter, orbits)
+			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
+		}
+		wg.Done()
+	}
+}
