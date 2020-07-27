@@ -92,6 +92,29 @@ func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit) fractales.Orbit {
 			return defaultOrbit
 		}
 		return fractales.CreatePointOrbit(x, y, dist)
+	} else if strings.HasPrefix(rawOrbit, "line(") {
+		paramString := strings.TrimSuffix(strings.TrimPrefix(rawOrbit, "line("), ")")
+		params := strings.Split(paramString, ",")
+		if len(params) != 4 {
+			return defaultOrbit
+		}
+		a, err := strconv.ParseFloat(params[0], 64)
+		if err != nil {
+			return defaultOrbit
+		}
+		b, err := strconv.ParseFloat(params[1], 64)
+		if err != nil {
+			return defaultOrbit
+		}
+		c, err := strconv.ParseFloat(params[2], 64)
+		if err != nil {
+			return defaultOrbit
+		}
+		dist, err := strconv.ParseFloat(params[3], 64)
+		if err != nil {
+			return defaultOrbit
+		}
+		return fractales.CreateLineOrbit(a, b, c, dist)
 	}
 	return defaultOrbit
 }
