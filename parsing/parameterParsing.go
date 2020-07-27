@@ -71,6 +71,46 @@ func parseImageCoords(r *http.Request) (float64, float64, float64, float64) {
 	return parseFloatParam(r, "left", params.Left), parseFloatParam(r, "right", params.Right), parseFloatParam(r, "top", params.Top), parseFloatParam(r, "bottom", params.Bottom)
 }
 
+func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit) fractales.Orbit {
+	if strings.HasPrefix(rawOrbit, "point(") {
+		paramString := strings.TrimSuffix(strings.TrimPrefix(rawOrbit, "point("), ")")
+		params := strings.Split(paramString, ",")
+		if len(params) != 3 {
+			return defaultOrbit
+		}
+
+		x, err := strconv.ParseFloat(params[0], 64)
+		if err != nil {
+			return defaultOrbit
+		}
+		y, err := strconv.ParseFloat(params[1], 64)
+		if err != nil {
+			return defaultOrbit
+		}
+		dist, err := strconv.ParseFloat(params[2], 64)
+		if err != nil {
+			return defaultOrbit
+		}
+		return fractales.CreatePointOrbit(x, y, dist)
+	}
+	return defaultOrbit
+}
+
+func parseOrbits(r *http.Request) []fractales.Orbit {
+	rawOrbits, ok := r.URL.Query()["orbit"]
+	defaultOrbit := fractales.CreatePointOrbit(0.5, -0.7, float64(100))
+
+	if !ok {
+		return []fractales.Orbit{defaultOrbit}
+	}
+	orbits := make([]fractales.Orbit, len(rawOrbits))
+
+	for i, orbit := range rawOrbits {
+		orbits[i] = parseOrbit(orbit, defaultOrbit)
+	}
+	return orbits
+}
+
 // ParseComputation parses the request parameters to dispatch the computation and the parameters
 func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParams) {
 	imgWidth, imgHeight := parseImageSize(r)
@@ -85,7 +125,10 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 
 	if r.URL.Query().Get("type") == "julia" {
 		return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
+	} else if r.URL.Query().Get("orbit") != "" {
+		orbits := parseOrbits(r)
+		return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
 	} else {
-		return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams), imageParams
+		return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
 	}
 }
