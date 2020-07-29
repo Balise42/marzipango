@@ -149,7 +149,12 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 	if r.URL.Query().Get("type") == "julia" {
 		return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
 	} else if r.URL.Query().Get("orbit") != "" {
-		orbits := parseOrbits(r)
+		//orbits := parseOrbits(r)
+		orbit, err := fractales.CreateImageOrbit(imageParams, 100)
+		if err != nil {
+			return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
+		}
+		orbits := []fractales.Orbit{orbit}
 		return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
 	} else {
 		return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
