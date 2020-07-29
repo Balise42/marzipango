@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/Balise42/marzipango/params"
-	pq "github.com/jupp0r/go-priority-queue"
 )
 
 type Orbit interface {
@@ -130,36 +129,27 @@ func isValid(c coords, width int, height int) bool {
 
 func computeDistances(img image.Image, width int, height int) map[coords]float64 {
 	distances := make(map[coords]float64)
-	queue := pq.New()
+	queue := make([]coords, 0)
 
 	for x := 0; x < img.Bounds().Dx(); x++ {
 		for y := 0; y < img.Bounds().Dy(); y++ {
 			if (img.At(x, y)) != color.White {
 				distances[coords{x, y}] = 0
-				for _, neigh := range getNeighbors(x, y) {
-					_, ok := distances[neigh]
-					if !ok {
-						distances[neigh] = 1
-						queue.Insert(neigh, -1)
-					}
-				}
+				queue = append(queue, coords{x, y})
 			}
 		}
 	}
 
-	for queue.Len() > 0 {
-		tmpv, _ := queue.Pop()
-		v := tmpv.(coords)
+	for len(queue) > 0 {
+		v := queue[0]
 		for _, neigh := range getNeighbors(v.X, v.Y) {
-			alt := distances[v] + 1
-			dist, ok := distances[neigh]
-			if !ok || alt < dist {
-				distances[neigh] = alt
-				if isValid(neigh, width, height) {
-					queue.Insert(neigh, -alt)
-				}
+			_, ok := distances[neigh]
+			if !ok && isValid(neigh, width, height) {
+				distances[neigh] = distances[v] + 1
+				queue = append(queue, neigh)
 			}
 		}
+		queue = queue[1:]
 	}
 	return distances
 }
