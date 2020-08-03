@@ -20,19 +20,21 @@ func MandelbrotValue(c complex128, maxiter int) (float64, bool) {
 }
 
 func MandelbrotOrbitValue(c complex128, maxiter int, orbits []Orbit) (float64, bool) {
-	dist := math.MaxFloat64
+	dist := 100.0
 
 	var z complex128
-	for i := 0; i < maxiter; i++ {
+	i := 0
+	for i < maxiter && cmplx.Abs(z) < 4 {
 		z = z*z + c
-
 		for _, orbit := range orbits {
 			dist = math.Min(dist, orbit.getOrbitValue(orbit.getOrbitFastValue(z)))
 		}
-		if cmplx.Abs(z) > 4 {
-			return dist, true
-		}
+		i++
 	}
 
-	return math.MaxFloat64, false
+	if i == maxiter || dist > 100 {
+		return math.MaxFloat64, false
+	}
+
+	return dist, true
 }

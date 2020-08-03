@@ -48,7 +48,7 @@ func parsePalette(r *http.Request, name string, fallback palettes.Colors) palett
 		listColors[i-1] = parseColor(paramList[i])
 	}
 
-	return palettes.Colors{Divergence: divergence, ListColors: listColors, MaxValue: 100}
+	return palettes.Colors{Divergence: divergence, ListColors: listColors, MaxValue: 254}
 }
 
 func parseImageSize(r *http.Request) (int, int) {
@@ -143,6 +143,7 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 	listCols := color.Palette{palettes.White, palettes.Black, palettes.White}
 	palette := palettes.Colors{Divergence: color.Black, ListColors: listCols, MaxValue: 100}
 	imgPalette := parsePalette(r, "palette", palette)
+	imgPalette.MaxValue = 100
 
 	imageParams := params.ImageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette}
 

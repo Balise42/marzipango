@@ -113,18 +113,23 @@ func (l LineOrbit) getOrbitValue(v float64) float64 {
 
 func getNeighbors(x int, y int) []coords {
 	return []coords{
-		coords{x - 1, y - 1},
-		coords{x - 1, y},
-		coords{x - 1, y + 1},
-		coords{x, y - 1},
-		coords{x, y + 1},
-		coords{x + 1, y - 1},
-		coords{x + 1, y},
-		coords{x + 1, y + 1}}
+		{x - 1, y - 1},
+		{x - 1, y},
+		{x - 1, y + 1},
+		{x, y - 1},
+		{x, y + 1},
+		{x + 1, y - 1},
+		{x + 1, y},
+		{x + 1, y + 1}}
 }
 
 func isValid(c coords, width int, height int) bool {
 	return c.X >= -100 && c.X <= width+100 && c.Y >= -100 && c.Y <= height+100
+}
+
+func isBlack(c color.Color) bool {
+	r, g, b, _ := c.RGBA()
+	return r < 50 && g < 50 && b < 50
 }
 
 func computeDistances(img image.Image, width int, height int) map[coords]float64 {
@@ -133,7 +138,7 @@ func computeDistances(img image.Image, width int, height int) map[coords]float64
 
 	for x := 0; x < img.Bounds().Dx(); x++ {
 		for y := 0; y < img.Bounds().Dy(); y++ {
-			if (img.At(x, y)) != color.White {
+			if isBlack(img.At(x, y)) {
 				distances[coords{x, y}] = 0
 				queue = append(queue, coords{x, y})
 			}
@@ -143,9 +148,13 @@ func computeDistances(img image.Image, width int, height int) map[coords]float64
 	for len(queue) > 0 {
 		v := queue[0]
 		for _, neigh := range getNeighbors(v.X, v.Y) {
-			_, ok := distances[neigh]
-			if !ok && isValid(neigh, width, height) {
-				distances[neigh] = distances[v] + 1
+			d, ok := distances[neigh]
+			alt := distances[v] + 1
+			if isValid(neigh, width, height) && (!ok || d > alt) {
+				distances[neigh] = alt
+				if alt > 10 {
+					distances[neigh] = 10
+				}
 				queue = append(queue, neigh)
 			}
 		}
@@ -154,8 +163,12 @@ func computeDistances(img image.Image, width int, height int) map[coords]float64
 	return distances
 }
 
+func createGrey(g float64) color.Color {
+	return color.RGBA{uint8(g), uint8(g), uint8(g), 255}
+}
+
 func CreateImageOrbit(params params.ImageParams, maxvalue float64) (ImageOrbit, error) {
-	f, err := os.Open("fractales/orbits/brain.png")
+	f, err := os.Open("fractales/orbits/marzipan.png")
 	if err != nil {
 		return ImageOrbit{}, err
 	}
@@ -172,7 +185,7 @@ func CreateImageOrbit(params params.ImageParams, maxvalue float64) (ImageOrbit, 
 	maxDist := 0.0
 
 	for _, v := range distances {
-		if v > maxDist {
+		if maxDist < v {
 			maxDist = v
 		}
 	}
@@ -180,14 +193,23 @@ func CreateImageOrbit(params params.ImageParams, maxvalue float64) (ImageOrbit, 
 	factor := (maxvalue - minDist) / (maxDist - minDist)
 	translation := minDist
 
-	return ImageOrbit{Distances: distances, Factor: factor, Translation: translation, Width: params.Width, Height: params.Height}, nil
+	return ImageOrbit{Distances: distances, Factor: factor, Translation: translation, Width: img.Bounds().Dx(), Height: img.Bounds().Dy()}, nil
 }
 
 func (im ImageOrbit) getOrbitFastValue(z complex128) float64 {
 	x := real(z)
 	y := imag(z)
-	xImg := int(((x + 2) / 3) * float64(im.Width))
-	yImg := int(((y + 1) / 2) * float64(im.Height))
+
+	hFloat := float64(im.Height)
+	wFloat := float64(im.Width)
+
+	xOffset := 2.0
+	yOffset := hFloat / wFloat
+	xFactor := wFloat / 2
+	yFactor := hFloat * hFloat * 2 / (3 * wFloat)
+
+	xImg := int((x + xOffset) * xFactor)
+	yImg := int((y + yOffset) * yFactor)
 
 	dist, ok := im.Distances[coords{xImg, yImg}]
 
