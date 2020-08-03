@@ -41,10 +41,13 @@ func ColorFromContinuousPalette(rawValue float64, converge bool, palette Colors)
 		return palette.ListColors[0]
 	}
 
-	value := math.Mod(rawValue, float64(palette.MaxValue)) / float64(palette.MaxValue)
+	value := math.Mod(rawValue, float64(palette.MaxValue))
 
-	colorIndex := (int(float64((len(palette.ListColors) - 1)) * value)) % (len(palette.ListColors) - 1)
-	normalizedColor := float64((len(palette.ListColors)-1))*value - float64(colorIndex)
+	normalized := value / float64(palette.MaxValue)
+	normalized = (math.Pow(normalized-0.5, 3) + 0.125) / 0.250
+
+	colorIndex := (int(float64((len(palette.ListColors) - 1)) * normalized)) % (len(palette.ListColors) - 1)
+	normalizedColor := float64((len(palette.ListColors)-1))*normalized - float64(colorIndex)
 
 	c1r, c1g, c1b, _ := palette.ListColors[colorIndex].RGBA()
 	c2r, c2g, c2b, _ := palette.ListColors[colorIndex+1].RGBA()

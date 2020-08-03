@@ -20,7 +20,7 @@ func MandelbrotValue(c complex128, maxiter int) (float64, bool) {
 }
 
 func MandelbrotOrbitValue(c complex128, maxiter int, orbits []Orbit) (float64, bool) {
-	dist := 100.0
+	dist := math.MaxFloat64
 
 	var z complex128
 	i := 0
@@ -32,7 +32,7 @@ func MandelbrotOrbitValue(c complex128, maxiter int, orbits []Orbit) (float64, b
 		i++
 	}
 
-	if i == maxiter || dist > 100 {
+	if i == maxiter {
 		return math.MaxFloat64, false
 	}
 

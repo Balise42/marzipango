@@ -129,7 +129,7 @@ func isValid(c coords, width int, height int) bool {
 
 func isBlack(c color.Color) bool {
 	r, g, b, _ := c.RGBA()
-	return r < 50 && g < 50 && b < 50
+	return r == 0 && g == 0 && b == 0
 }
 
 func computeDistances(img image.Image, width int, height int) map[coords]float64 {
@@ -152,8 +152,8 @@ func computeDistances(img image.Image, width int, height int) map[coords]float64
 			alt := distances[v] + 1
 			if isValid(neigh, width, height) && (!ok || d > alt) {
 				distances[neigh] = alt
-				if alt > 10 {
-					distances[neigh] = 10
+				if alt > 100 {
+					distances[neigh] = 100
 				}
 				queue = append(queue, neigh)
 			}
@@ -168,7 +168,7 @@ func createGrey(g float64) color.Color {
 }
 
 func CreateImageOrbit(params params.ImageParams, maxvalue float64) (ImageOrbit, error) {
-	f, err := os.Open("fractales/orbits/marzipan.png")
+	f, err := os.Open("fractales/orbits/spiral.png")
 	if err != nil {
 		return ImageOrbit{}, err
 	}
@@ -204,14 +204,14 @@ func (im ImageOrbit) getOrbitFastValue(z complex128) float64 {
 	wFloat := float64(im.Width)
 
 	xOffset := 2.0
-	yOffset := hFloat / wFloat
-	xFactor := wFloat / 2
-	yFactor := hFloat * hFloat * 2 / (3 * wFloat)
+	yOffset := 1.0
+	xFactor := wFloat / 3
+	yFactor := hFloat / 2
 
-	xImg := int((x + xOffset) * xFactor)
-	yImg := int((y + yOffset) * yFactor)
+	xImg := x*xFactor + xOffset/xFactor
+	yImg := y*yFactor + yOffset/yFactor
 
-	dist, ok := im.Distances[coords{xImg, yImg}]
+	dist, ok := im.Distances[coords{int(xImg), int(yImg)}]
 
 	if !ok {
 		return math.MaxInt64
