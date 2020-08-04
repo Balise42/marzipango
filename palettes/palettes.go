@@ -5,24 +5,49 @@ import (
 	"math"
 )
 
-var Blue = color.RGBA64{0, 0, 0xffff, 0xffff}
-var Red = color.RGBA64{0xffff, 0, 0, 0xffff}
-var Green = color.RGBA64{0, 0xffff, 0, 0xffff}
-var Yellow = color.RGBA64{0xffff, 0xffff, 0, 0xffff}
-var Magenta = color.RGBA64{0xffff, 0, 0xffff, 0xffff}
-var Cyan = color.RGBA64{0, 0xffff, 0xffff, 0xffff}
-var Black = color.RGBA64{0, 0, 0, 0xffff}
-var White = color.RGBA64{0xffff, 0xffff, 0xffff, 0xffff}
+var Blue = color.RGBA{0, 0, 255, 255}
+var Red = color.RGBA{255, 0, 0, 255}
+var Green = color.RGBA{0, 255, 0, 255}
+var Yellow = color.RGBA{255, 255, 0, 255}
+var Magenta = color.RGBA{255, 0, 255, 255}
+var Cyan = color.RGBA{0, 255, 255, 255}
+var Black = color.RGBA{0, 0, 0, 255}
+var White = color.RGBA{255, 255, 255, 255}
+var DarkGreen = color.RGBA{0, 100, 0, 255}
+var Champagne = color.RGBA{247, 231, 206, 255}
+var DarkChampagne = color.RGBA{41, 25, 0, 255}
+var Orange = color.RGBA{255, 127, 0, 255}
+var Violet = color.RGBA{139, 0, 255, 255}
+var LightPink = color.RGBA{255, 182, 193, 255}
+var LightGreen = color.RGBA{172, 225, 175, 255}
+var Purple = color.RGBA{148, 0, 211, 255}
+var Indigo = color.RGBA{75, 0, 130, 255}
+var Teal = color.RGBA{0, 128, 128, 255}
+var DarkBlue = color.RGBA{0, 0, 128, 255}
+var SoftPink = color.RGBA{255, 221, 244, 255}
 
 var ColorNames = map[string]color.Color{
-	"blue":    Blue,
-	"red":     Red,
-	"green":   Green,
-	"yellow":  Yellow,
-	"magenta": Magenta,
-	"cyan":    Cyan,
-	"black":   Black,
-	"white":   White}
+	"blue":          Blue,
+	"red":           Red,
+	"green":         Green,
+	"yellow":        Yellow,
+	"magenta":       Magenta,
+	"cyan":          Cyan,
+	"black":         Black,
+	"white":         White,
+	"darkgreen":     DarkGreen,
+	"champagne":     Champagne,
+	"darkchampagne": DarkChampagne,
+	"orange":        Orange,
+	"violet":        Violet,
+	"lightpink":     LightPink,
+	"lightgreen":    LightGreen,
+	"purple":        Purple,
+	"indigo":        Indigo,
+	"teal":          Teal,
+	"darkblue":      DarkBlue,
+	"softpink":      SoftPink,
+}
 
 // Colors used for the palette
 type Colors struct {
