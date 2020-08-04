@@ -167,8 +167,8 @@ func createGrey(g float64) color.Color {
 	return color.RGBA{uint8(g), uint8(g), uint8(g), 255}
 }
 
-func CreateImageOrbit(params params.ImageParams, maxvalue float64) (ImageOrbit, error) {
-	f, err := os.Open("fractales/orbits/spiral.png")
+func CreateImageOrbit(params params.ImageParams, path string, maxvalue float64) (ImageOrbit, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return ImageOrbit{}, err
 	}
