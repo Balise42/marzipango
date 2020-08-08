@@ -2,6 +2,7 @@ package fractales
 
 import (
 	"image"
+	"math/big"
 	"sync"
 
 	"github.com/Balise42/marzipango/palettes"
@@ -13,6 +14,22 @@ func scale(x int, y int, pos params.ImageParams) complex128 {
 	im := pos.Top + float64(y)/float64(pos.Height)*(pos.Bottom-pos.Top)
 
 	return complex(real, im)
+}
+
+func scaleHigh(x int, y int, pos params.ImageParams) LargeComplex {
+	real := big.NewFloat(0)
+	real.Sub(big.NewFloat(pos.Right), big.NewFloat(pos.Left))
+	real.Mul(big.NewFloat(float64(x)), real)
+	real.Quo(real, big.NewFloat(float64(pos.Width)))
+	real.Add(real, big.NewFloat(pos.Left))
+
+	imag := big.NewFloat(0)
+	imag.Sub(big.NewFloat(pos.Bottom), big.NewFloat(pos.Top))
+	imag.Mul(big.NewFloat(float64(y)), imag)
+	imag.Quo(imag, big.NewFloat(float64(pos.Height)))
+	imag.Add(imag, big.NewFloat(pos.Top))
+
+	return LargeComplex{real, imag}
 }
 
 // Computation fills in image pixels according to parameters
@@ -45,6 +62,18 @@ func ComputeOrbitMandelbrotWithContinuousPalette(params params.ImageParams, orbi
 	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
 		for y := ymin; y < ymax; y++ {
 			value, converge := MandelbrotOrbitValue(scale(x, y, params), params.MaxIter, orbits)
+			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
+		}
+		wg.Done()
+	}
+}
+
+// ComputeOrbitMandelbrotHighWithContinuousPalette provides the computation for an orbit-colored Mandelbrot with the provided image parameters and orbits
+func ComputeMandelbrotHighWithContinuousPalette(params params.ImageParams) Computation {
+	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
+		for y := ymin; y < ymax; y++ {
+			scaled := scaleHigh(x, y, params)
+			value, converge := MandelbrotValueHigh(&scaled, params.MaxIter)
 			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
 		}
 		wg.Done()

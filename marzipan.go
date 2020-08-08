@@ -21,7 +21,6 @@ var (
 	hostname = flag.String("hostname", "localhost", "Host to listen on.")
 )
 
-
 func generateImage(w io.Writer, params params.ImageParams, comp fractales.Computation) error {
 	var wg sync.WaitGroup
 	img := image.NewRGBA64(image.Rect(0, 0, params.Width, params.Height))

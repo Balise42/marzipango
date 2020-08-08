@@ -166,6 +166,14 @@ func parseOrbits(r *http.Request, params params.ImageParams) []fractales.Orbit {
 	return orbits
 }
 
+func highPrecision(params params.ImageParams) bool {
+	coords := make(map[float64]bool)
+	for x := 0; x < params.Width; x++ {
+		coords[params.Left+float64(x)/float64(params.Width)*(params.Right-params.Left)] = true
+	}
+	return len(coords) < params.Width-5
+}
+
 // ParseComputation parses the request parameters to dispatch the computation and the parameters
 func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParams) {
 	imgWidth, imgHeight := parseImageSize(r)
@@ -179,12 +187,24 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 
 	imageParams := params.ImageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette}
 
-	if r.URL.Query().Get("type") == "julia" {
-		return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
-	} else if r.URL.Query().Get("orbit") != "" {
-		orbits := parseOrbits(r, imageParams)
-		return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
+	if !highPrecision(imageParams) {
+		if r.URL.Query().Get("type") == "julia" {
+			return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
+		} else if r.URL.Query().Get("orbit") != "" {
+			orbits := parseOrbits(r, imageParams)
+			return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
+		} else {
+			return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
+		}
 	} else {
-		return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
+		if r.URL.Query().Get("type") == "julia" {
+			return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
+		} else if r.URL.Query().Get("orbit") != "" {
+			orbits := parseOrbits(r, imageParams)
+			return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
+		} else {
+			return fractales.ComputeMandelbrotHighWithContinuousPalette(imageParams), imageParams
+		}
 	}
+
 }
