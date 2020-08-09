@@ -48,6 +48,17 @@ func ComputeMandelbrotWithContinuousPalette(params params.ImageParams) Computati
 	}
 }
 
+// ComputeMandelbrotWithContinuousPalette provides the computation for a continuous-colored Multibrot with the provided image parameters
+func ComputeMultibrotWithContinuousPalette(params params.ImageParams) Computation {
+	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
+		for y := ymin; y < ymax; y++ {
+			value, converge := MultibrotValue(scale(x, y, params), params.MaxIter, params.Power)
+			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
+		}
+		wg.Done()
+	}
+}
+
 // ComputeJuliaWithContinuousPalette provides the computation for a continuous-colored Julia with the provided image parameters
 func ComputeJuliaWithContinuousPalette(params params.ImageParams) Computation {
 	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {

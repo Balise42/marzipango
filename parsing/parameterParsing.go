@@ -185,7 +185,9 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 	imgPalette := parsePalette(r, "palette", palette)
 	imgPalette.MaxValue = 100
 
-	imageParams := params.ImageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette}
+	power := complex(parseFloatParam(r, "power", 2), 0)
+
+	imageParams := params.ImageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette, power}
 
 	if !highPrecision(imageParams) {
 		if r.URL.Query().Get("type") == "julia" {
@@ -193,6 +195,8 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 		} else if r.URL.Query().Get("orbit") != "" {
 			orbits := parseOrbits(r, imageParams)
 			return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
+		} else if r.URL.Query().Get("power") != "" {
+			return fractales.ComputeMultibrotWithContinuousPalette(imageParams), imageParams
 		} else {
 			return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
 		}

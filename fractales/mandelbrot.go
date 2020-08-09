@@ -21,6 +21,18 @@ func MandelbrotValue(c complex128, maxiter int) (float64, bool) {
 }
 
 // MandelbrotValue returns the number of iterations corresponding to a complex in the Mandelbrot set
+func MultibrotValue(c complex128, maxiter int, power complex128) (float64, bool) {
+	z := 0 + 0i
+	for i := 0; i < maxiter; i++ {
+		z = cmplx.Pow(z, power) + c
+		if absz := cmplx.Abs(z); absz > r {
+			return (float64(i) + 1 - math.Log2(math.Log2(absz))), true
+		}
+	}
+	return math.MaxInt64, false
+}
+
+// MandelbrotValue returns the number of iterations corresponding to a complex in the Mandelbrot set
 func MandelbrotValueHigh(c *LargeComplex, maxiter int) (float64, bool) {
 	z := LargeComplex{big.NewFloat(0), big.NewFloat(0)}
 	for i := 0; i < maxiter; i++ {
