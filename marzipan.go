@@ -8,7 +8,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"runtime"
+	"runtime/pprof"
 	"sync"
 
 	"github.com/Balise42/marzipango/fractales"
@@ -17,8 +20,9 @@ import (
 )
 
 var (
-	port     = flag.Int("port", 8080, "Webserver port to listen on.")
-	hostname = flag.String("hostname", "localhost", "Host to listen on.")
+	port       = flag.Int("port", 8080, "Webserver port to listen on.")
+	hostname   = flag.String("hostname", "localhost", "Host to listen on.")
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 )
 
 func generateImage(w io.Writer, params params.ImageParams, comp fractales.Computation) error {
@@ -55,6 +59,25 @@ func main() {
 	http.HandleFunc("/", fractale)
 	address := fmt.Sprintf("%s:%d", *hostname, *port)
 	fmt.Printf("Listening on http://%s ...\n", address)
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for range c {
+			pprof.StopCPUProfile()
+			os.Exit(1)
+		}
+	}()
+
 	err := http.ListenAndServe(address, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)

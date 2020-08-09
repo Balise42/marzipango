@@ -17,16 +17,18 @@ func scale(x int, y int, pos params.ImageParams) complex128 {
 }
 
 func scaleHigh(x int, y int, pos params.ImageParams) LargeComplex {
+	ratioX := float64(x) / float64(pos.Width)
+
 	real := big.NewFloat(0)
 	real.Sub(big.NewFloat(pos.Right), big.NewFloat(pos.Left))
-	real.Mul(big.NewFloat(float64(x)), real)
-	real.Quo(real, big.NewFloat(float64(pos.Width)))
+	real.Mul(big.NewFloat(float64(ratioX)), real)
 	real.Add(real, big.NewFloat(pos.Left))
+
+	ratioY := float64(y) / float64(pos.Height)
 
 	imag := big.NewFloat(0)
 	imag.Sub(big.NewFloat(pos.Bottom), big.NewFloat(pos.Top))
-	imag.Mul(big.NewFloat(float64(y)), imag)
-	imag.Quo(imag, big.NewFloat(float64(pos.Height)))
+	imag.Mul(big.NewFloat(ratioY), imag)
 	imag.Add(imag, big.NewFloat(pos.Top))
 
 	return LargeComplex{real, imag}
