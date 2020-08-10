@@ -22,11 +22,14 @@ func MandelbrotValue(c complex128, maxiter int) (float64, bool) {
 
 // MandelbrotValue returns the number of iterations corresponding to a complex in the Mandelbrot set
 func MultibrotValue(c complex128, maxiter int, power complex128) (float64, bool) {
+
+	B := math.Pow(2, 1/(real(power)-1))
+
 	z := 0 + 0i
 	for i := 0; i < maxiter; i++ {
 		z = cmplx.Pow(z, power) + c
 		if absz := cmplx.Abs(z); absz > r {
-			return (float64(i) + 1 - math.Log2(math.Log2(absz))), true
+			return (float64(i) + 1 - (math.Log(math.Log(absz)/math.Log(B)) / math.Log2(real(power)))), true
 		}
 	}
 	return math.MaxInt64, false
