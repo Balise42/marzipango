@@ -37,57 +37,14 @@ func scaleHigh(x int, y int, pos params.ImageParams) LargeComplex {
 // Computation fills in image pixels according to parameters
 type Computation func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup)
 
-// ComputeMandelbrotWithContinuousPalette provides the computation for a continuous-colored Mandelbrot with the provided image parameters
-func ComputeMandelbrotWithContinuousPalette(params params.ImageParams) Computation {
-	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
-		for y := ymin; y < ymax; y++ {
-			value, converge := MandelbrotValue(scale(x, y, params), params.MaxIter)
-			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
-		}
-		wg.Done()
-	}
-}
+// ValueComputation is a value computation function
+type ValueComputation func(x int, y int) (float64, bool)
 
-// ComputeMandelbrotWithContinuousPalette provides the computation for a continuous-colored Multibrot with the provided image parameters
-func ComputeMultibrotWithContinuousPalette(params params.ImageParams) Computation {
+func CreateComputer(computeValue ValueComputation, colorPixel palettes.ColoringFunction, params params.ImageParams) Computation {
 	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
 		for y := ymin; y < ymax; y++ {
-			value, converge := MultibrotValue(scale(x, y, params), params.MaxIter, params.Power)
-			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
-		}
-		wg.Done()
-	}
-}
-
-// ComputeJuliaWithContinuousPalette provides the computation for a continuous-colored Julia with the provided image parameters
-func ComputeJuliaWithContinuousPalette(params params.ImageParams) Computation {
-	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
-		for y := ymin; y < ymax; y++ {
-			value, converge := JuliaValue(scale(x, y, params), params.MaxIter)
-			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
-		}
-		wg.Done()
-	}
-}
-
-// ComputeOrbitMandelbrotWithContinuousPalette provides the computation for an orbit-colored Mandelbrot with the provided image parameters and orbits
-func ComputeOrbitMandelbrotWithContinuousPalette(params params.ImageParams, orbits []Orbit) Computation {
-	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
-		for y := ymin; y < ymax; y++ {
-			value, converge := MandelbrotOrbitValue(scale(x, y, params), params.MaxIter, orbits)
-			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
-		}
-		wg.Done()
-	}
-}
-
-// ComputeOrbitMandelbrotHighWithContinuousPalette provides the computation for an orbit-colored Mandelbrot with the provided image parameters and orbits
-func ComputeMandelbrotHighWithContinuousPalette(params params.ImageParams) Computation {
-	return func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
-		for y := ymin; y < ymax; y++ {
-			scaled := scaleHigh(x, y, params)
-			value, converge := MandelbrotValueHigh(&scaled, params.MaxIter)
-			img.Set(x, y, palettes.ColorFromContinuousPalette(value, converge, params.Palette))
+			value, converge := computeValue(x, y)
+			colorPixel(img, x, y, value, converge)
 		}
 		wg.Done()
 	}

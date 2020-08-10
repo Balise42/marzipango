@@ -151,19 +151,27 @@ func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit, imageParams param
 	return defaultOrbit
 }
 
-func parseOrbits(r *http.Request, params params.ImageParams) []fractales.Orbit {
+func parseOrbits(r *http.Request, params params.ImageParams) ([]fractales.Orbit, bool) {
 	rawOrbits, ok := r.URL.Query()["orbit"]
 	defaultOrbit := fractales.CreatePointOrbit(0.5, -0.7, float64(100))
 
 	if !ok {
-		return []fractales.Orbit{defaultOrbit}
+		return []fractales.Orbit{defaultOrbit}, false
 	}
 	orbits := make([]fractales.Orbit, len(rawOrbits))
 
 	for i, orbit := range rawOrbits {
 		orbits[i] = parseOrbit(orbit, defaultOrbit, params)
 	}
-	return orbits
+	return orbits, true
+}
+
+func parseFractaleType(r *http.Request, defaultType string) string {
+	fractaleType := r.URL.Query().Get("type")
+	if fractaleType == "mandelbrot" || fractaleType == "julia" {
+		return fractaleType
+	}
+	return defaultType
 }
 
 func highPrecision(params params.ImageParams) bool {
@@ -185,30 +193,40 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 	imgPalette := parsePalette(r, "palette", palette)
 	imgPalette.MaxValue = 100
 
-	power := complex(parseFloatParam(r, "power", 2), 0)
+	power := parseFloatParam(r, "power", 2)
 
-	imageParams := params.ImageParams{imgLeft, imgRight, imgTop, imgBottom, imgWidth, imgHeight, imgMaxIter, imgPalette, power}
+	imageParams := params.ImageParams{Left: imgLeft, Right: imgRight, Top: imgTop, Bottom: imgBottom, Width: imgWidth, Height: imgHeight, MaxIter: imgMaxIter, Palette: imgPalette, Power: power}
+
+	fractaleType := parseFractaleType(r, "mandelbrot")
+
+	orbits, hasOrbits := parseOrbits(r, imageParams)
+
+	var valueComputer fractales.ValueComputation
+	var colorPixel palettes.ColoringFunction = palettes.ContinuousColoring(imgPalette)
 
 	if !highPrecision(imageParams) {
-		if r.URL.Query().Get("type") == "julia" {
-			return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
-		} else if r.URL.Query().Get("orbit") != "" {
-			orbits := parseOrbits(r, imageParams)
-			return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
-		} else if r.URL.Query().Get("power") != "" {
-			return fractales.ComputeMultibrotWithContinuousPalette(imageParams), imageParams
-		} else {
-			return fractales.ComputeMandelbrotWithContinuousPalette(imageParams), imageParams
+		if fractaleType == "julia" {
+			if hasOrbits {
+				valueComputer = fractales.JuliaOrbitValueComputerLow(imageParams, orbits)
+			} else {
+				valueComputer = fractales.JuliaContinuousValueComputerLow(imageParams)
+			}
+		} else if fractaleType == "mandelbrot" && power == 2 {
+			if hasOrbits {
+				valueComputer = fractales.MandelbrotOrbitValueComputerLow(imageParams, orbits)
+			} else {
+				valueComputer = fractales.MandelbrotContinuousValueComputerLow(imageParams)
+			}
+		} else if power != 2 {
+			valueComputer = fractales.MultibrotContinuousValueComputerLow(imageParams)
 		}
 	} else {
-		if r.URL.Query().Get("type") == "julia" {
-			return fractales.ComputeJuliaWithContinuousPalette(imageParams), imageParams
-		} else if r.URL.Query().Get("orbit") != "" {
-			orbits := parseOrbits(r, imageParams)
-			return fractales.ComputeOrbitMandelbrotWithContinuousPalette(imageParams, orbits), imageParams
-		} else {
-			return fractales.ComputeMandelbrotHighWithContinuousPalette(imageParams), imageParams
+		if fractaleType == "julia" {
+			valueComputer = fractales.JuliaContinuousValueComputerHigh(imageParams)
+		} else if fractaleType == "mandelbrot" && power == 2 {
+			valueComputer = fractales.MandelbrotContinuousValueComputerHigh(imageParams)
 		}
 	}
 
+	return fractales.CreateComputer(valueComputer, colorPixel, imageParams), imageParams
 }

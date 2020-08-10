@@ -1,6 +1,7 @@
 package palettes
 
 import (
+	"image"
 	"image/color"
 	"math"
 )
@@ -56,6 +57,8 @@ type Colors struct {
 	MaxValue   int
 }
 
+type ColoringFunction func(img *image.RGBA64, x int, y int, value float64, converge bool)
+
 // ColorFromContinuousPalette returns the color corresponding to the value from 0 to 1 (0 is the first color of the palette, 1 is the last color of the palette)
 func ColorFromContinuousPalette(rawValue float64, converge bool, palette Colors) color.Color {
 	if !converge {
@@ -83,4 +86,10 @@ func ColorFromContinuousPalette(rawValue float64, converge bool, palette Colors)
 	b = int16(float64(c2b)*normalizedColor + float64(c1b)*(1-normalizedColor))
 
 	return color.RGBA64{uint16(r), uint16(g), uint16(b), 0xffff}
+}
+
+func ContinuousColoring(palette Colors) ColoringFunction {
+	return func(img *image.RGBA64, x int, y int, value float64, converge bool) {
+		img.Set(x, y, ColorFromContinuousPalette(value, converge, palette))
+	}
 }

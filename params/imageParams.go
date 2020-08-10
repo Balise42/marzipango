@@ -19,5 +19,5 @@ type ImageParams struct {
 	Height  int
 	MaxIter int
 	Palette palettes.Colors
-	Power   complex128
+	Power   float64
 }
