@@ -189,9 +189,8 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 	imgMaxIter := parseIntParam(r, "maxiter", params.Maxiter)
 
 	listCols := color.Palette{palettes.White, palettes.Black, palettes.White}
-	palette := palettes.Colors{Divergence: color.Black, ListColors: listCols, MaxValue: 100}
+	palette := palettes.Colors{Divergence: color.Black, ListColors: listCols, MaxValue: 500}
 	imgPalette := parsePalette(r, "palette", palette)
-	imgPalette.MaxValue = 100
 
 	power := parseFloatParam(r, "power", 2)
 

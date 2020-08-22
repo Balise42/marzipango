@@ -32,8 +32,13 @@ type LineOrbit struct {
 }
 
 type coords struct {
-	X int
-	Y int
+	X int64
+	Y int64
+}
+
+type coordsFloat struct {
+	X float64
+	Y float64
 }
 
 type ImageOrbit struct {
@@ -111,60 +116,110 @@ func (l LineOrbit) getOrbitValue(v float64) float64 {
 	return (math.Sqrt(v)/l.Sqrtab - l.Translation) * l.Factor
 }
 
-func getNeighbors(x int, y int) []coords {
-	return []coords{
-		{x - 1, y - 1},
-		{x - 1, y},
-		{x - 1, y + 1},
-		{x, y - 1},
-		{x, y + 1},
-		{x + 1, y - 1},
-		{x + 1, y},
-		{x + 1, y + 1}}
-}
-
-func isValid(c coords, width int, height int) bool {
-	return c.X >= -100 && c.X <= width+100 && c.Y >= -100 && c.Y <= height+100
-}
-
 func isBlack(c color.Color) bool {
 	r, g, b, _ := c.RGBA()
 	return r == 0 && g == 0 && b == 0
 }
 
-func computeDistances(img image.Image, width int, height int) map[coords]float64 {
-	distances := make(map[coords]float64)
-	queue := make([]coords, 0)
+// distance field computation from https://prideout.net/blog/distance_fields/
+func findHullParabolas(row []float64) ([]int, []float64) {
+	v := make([]int, len(row))
+	z := make([]float64, len(row)+1)
+	k := 0
 
-	for x := 0; x < img.Bounds().Dx(); x++ {
-		for y := 0; y < img.Bounds().Dy(); y++ {
-			if isBlack(img.At(x, y)) {
-				distances[coords{x, y}] = 0
-				queue = append(queue, coords{x, y})
-			}
+	v[0] = 0
+	z[0] = -math.MaxInt16
+	z[1] = math.MaxInt16
+
+	for i := 1; i < len(row); i++ {
+		q := i
+		p := v[k]
+		s := intersectParabolas(p, q, row)
+		for s <= z[k] {
+			k = k - 1
+			p = v[k]
+			s = intersectParabolas(p, q, row)
 		}
+		k = k + 1
+		v[k] = q
+		z[k] = s
+		z[k+1] = math.MaxInt16
 	}
 
-	for len(queue) > 0 {
-		v := queue[0]
-		for _, neigh := range getNeighbors(v.X, v.Y) {
-			d, ok := distances[neigh]
-			alt := distances[v] + 1
-			if isValid(neigh, width, height) && (!ok || d > alt) {
-				distances[neigh] = alt
-				if alt > 100 {
-					distances[neigh] = 100
-				}
-				queue = append(queue, neigh)
-			}
-		}
-		queue = queue[1:]
-	}
-	return distances
+	return v, z
 }
 
-func createGrey(g float64) color.Color {
-	return color.RGBA{uint8(g), uint8(g), uint8(g), 255}
+func intersectParabolas(p int, q int, row []float64) float64 {
+	intersect := ((row[q] + float64(q*q)) - (row[p] + float64(p*p))) / (2*float64(q) - 2*float64(p))
+	return intersect
+}
+
+func marchParabolas(row []float64, vertices []int, intersections []float64) {
+	k := 0
+	for q := range row {
+		for intersections[k+1] < float64(q) {
+			k = k + 1
+		}
+		dx := q - vertices[k]
+		row[q] = float64(dx*dx) + row[vertices[k]]
+	}
+}
+
+func horizontalPass(row []float64) {
+	vertices, intersections := findHullParabolas(row)
+	marchParabolas(row, vertices, intersections)
+}
+
+func transpose(field [][]float64) [][]float64 {
+	transposed := make([][]float64, len(field[0]))
+	for x := range transposed {
+		transposed[x] = make([]float64, len(field))
+		for y := range transposed[x] {
+			transposed[x][y] = field[y][x]
+		}
+	}
+	return transposed
+}
+
+func computeEdt(img image.Image, width int, height int, maxvalue int) map[coords]float64 {
+
+	field := make([][]float64, width+maxvalue*2)
+	for x := range field {
+		field[x] = make([]float64, height+maxvalue*2)
+		for y := range field[x] {
+			if x > maxvalue && x < img.Bounds().Dx()+maxvalue && y > maxvalue && y < img.Bounds().Dy()+maxvalue && isBlack(img.At(x-maxvalue, y-maxvalue)) {
+				field[x][y] = 0
+			} else {
+				field[x][y] = math.MaxInt16
+			}
+		}
+	}
+
+	for _, row := range field {
+		horizontalPass(row)
+	}
+
+	field = transpose(field)
+
+	for _, row := range field {
+		horizontalPass(row)
+	}
+
+	field = transpose(field)
+
+	return convertField(field, maxvalue, maxvalue)
+}
+
+func doNothing(x int, y int) {}
+
+func convertField(field [][]float64, offsetX int, offsetY int) map[coords]float64 {
+	offsetField := make(map[coords]float64)
+	for x := range field {
+		for y := range field[x] {
+			offsetField[coords{int64(x - offsetX), int64(y - offsetY)}] = math.Sqrt(field[x][y])
+		}
+	}
+	return offsetField
 }
 
 func CreateImageOrbit(params params.ImageParams, path string, maxvalue float64) (ImageOrbit, error) {
@@ -179,7 +234,7 @@ func CreateImageOrbit(params params.ImageParams, path string, maxvalue float64) 
 		return ImageOrbit{}, err
 	}
 
-	distances := computeDistances(img, params.Width, params.Height)
+	distances := computeEdt(img, params.Width, params.Height, int(maxvalue))
 
 	minDist := 0.0
 	maxDist := 0.0
@@ -211,7 +266,7 @@ func (im ImageOrbit) getOrbitFastValue(z complex128) float64 {
 	xImg := x*xFactor + xOffset/xFactor
 	yImg := y*yFactor + yOffset/yFactor
 
-	dist, ok := im.Distances[coords{int(xImg), int(yImg)}]
+	dist, ok := im.Distances[coords{int64(xImg), int64(yImg)}]
 
 	if !ok {
 		return math.MaxInt64
