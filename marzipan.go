@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"sync"
+	"time"
 
 	"github.com/Balise42/marzipango/fractales"
 	"github.com/Balise42/marzipango/params"
@@ -43,6 +44,7 @@ func generateImage(w io.Writer, params params.ImageParams, comp fractales.Comput
 }
 
 func fractale(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	comp, imageParams := parsing.ParseComputation(r)
 
 	w.Header().Set("Content-Type", "image/png")
@@ -51,7 +53,8 @@ func fractale(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("Image served", imageParams)
+	fmt.Print("Image served", imageParams)
+	fmt.Printf("in %s\n", time.Since(start))
 }
 
 func main() {

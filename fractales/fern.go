@@ -7,7 +7,7 @@ import (
 
 
 
-func IfsValueComputerLow(params params.ImageParams) ValueComputation {
+func FernValueComputeLow(params params.ImageParams) ValueComputation {
 	ifsMap := createFernMap(params)
 	
 	return func(x int, y int) (float64, bool) {
