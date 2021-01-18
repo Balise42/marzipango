@@ -28,9 +28,9 @@ func CreateFlameComputer(params params.ImageParams) (Computation, params.ImagePa
 	return comp, params
 }
 
-type flameFunc func(float64, float64) (float64, float64)
+type ifsFunc func(float64, float64) (float64, float64)
 
-func createFlameFuncs() []flameFunc {
+func createFlameFuncs() []ifsFunc {
 	V0 := func(x float64, y float64) (float64, float64) {
 		return x, y
 	}
@@ -49,7 +49,7 @@ func createFlameFuncs() []flameFunc {
 		return x*math.Sin(r2) - y*math.Cos(r2), x*math.Cos(r2) + y*math.Sin(r^2)
 	}
 
-	return []flameFunc{V0, V1, V2, V3}
+	return []ifsFunc{V0, V1, V2, V3}
 }
 
 type triplet struct {
@@ -59,13 +59,13 @@ type triplet struct {
 	A float64
 }
 
-func createFlameMap(params params.ImageParams, funcs []flameFunc) map[coords]color.RGBA {
+func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[coords]color.RGBA {
 	res := make(map[coords]color.RGBA)
 	x := float64(0)
 	y := float64(0)
 
 	resTmp := make(map[coords]triplet)
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 5000000; i++ {
 		rule := rand.Float32()
 		var a, b, c, d, e, f float64
 		var funcIndex int
@@ -118,36 +118,16 @@ func createFlameMap(params params.ImageParams, funcs []flameFunc) map[coords]col
 		y = y1
 	}
 
-	scaledDown := make(map[coords]triplet)
-	for x := 0; x < params.Width; x++ {
-		for y := 0; y < params.Height; y++ {
-			x64 := int64(x)
-			y64 := int64(y)
-
-			rScaled, gScaled, bScaled, aScaled := 0.0, 0.0, 0.0, 0.0
-			for dx := int64(-1); dx <= 1; dx++ {
-				for dy := int64(-1); dy <= 1; dy++ {
-					rScaled += resTmp[coords{x64 * 3.0 + dx, y64 * 3.0 + dy}].R
-					gScaled += resTmp[coords{x64 * 3.0 + dx, y64 * 3.0 + dy}].G
-					bScaled += resTmp[coords{x64 * 3.0 + dx, y64 * 3.0 + dy}].B
-					aScaled += resTmp[coords{x64 * 3.0 + dx, y64 * 3.0 + dy}].A
-				}
-			}
-
-			scaledDown[coords{x64, y64}] = triplet{rScaled / 9, gScaled / 9, bScaled / 9, 255}
-		}
-	}
-
 	maxAlpha := 0.0
-	for _, v := range scaledDown {
+	for _, v := range resTmp {
 		if v.A > maxAlpha {
 			maxAlpha = v.A
 		}
 	}
 
 
-	for k, v := range scaledDown {
-		scale := 1.0//math.Log2(v.A) / v.A
+	for k, v := range resTmp {
+		scale := math.Log2(v.A) / v.A
 		cr := uint8(v.R * scale * 256)
 		cg := uint8(v.G * scale * 256)
 		cb := uint8(v.B * scale * 256)
@@ -160,7 +140,7 @@ func createFlameMap(params params.ImageParams, funcs []flameFunc) map[coords]col
 }
 
 func scaleFlame(x1 float64, y1 float64, imageParams params.ImageParams) coords {
-	x := x1 * float64(imageParams.Width * 3)
-	y := y1 * float64(imageParams.Height * 3)
+	x := x1 * float64(imageParams.Width)
+	y := y1 * float64(imageParams.Height)
 	return coords{int64(x), int64(y)}
 }

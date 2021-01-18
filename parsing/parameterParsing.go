@@ -168,7 +168,7 @@ func parseOrbits(r *http.Request, params params.ImageParams) ([]fractales.Orbit,
 
 func parseFractaleType(r *http.Request, defaultType string) string {
 	fractaleType := r.URL.Query().Get("type")
-	if fractaleType == "mandelbrot" || fractaleType == "julia" || fractaleType == "fern" || fractaleType == "flame" {
+	if fractaleType == "mandelbrot" || fractaleType == "julia" || fractaleType == "fern" || fractaleType == "flame" || fractaleType == "sierp"{
 		return fractaleType
 	}
 	return defaultType
@@ -222,6 +222,8 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 		} else if fractaleType == "flame" {
 			return fractales.CreateFlameComputer(imageParams)
 			//valueComputer = fractales.FlameValueComputeLow(imageParams)
+		} else if fractaleType == "sierp" {
+			valueComputer = fractales.SierpValueComputeLow(imageParams)
 		} else if power != 2 {
 			valueComputer = fractales.MultibrotContinuousValueComputerLow(imageParams)
 		}
