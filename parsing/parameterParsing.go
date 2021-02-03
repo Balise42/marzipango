@@ -221,7 +221,6 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 			valueComputer = fractales.FernValueComputeLow(imageParams)
 		} else if fractaleType == "flame" {
 			return fractales.CreateFlameComputer(imageParams)
-			//valueComputer = fractales.FlameValueComputeLow(imageParams)
 		} else if fractaleType == "sierp" {
 			valueComputer = fractales.SierpValueComputeLow(imageParams)
 		} else if power != 2 {

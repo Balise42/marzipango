@@ -108,10 +108,12 @@ func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[coords]color
 		coords := scaleFlame(x1, y1, params)
 		fr, fg, fb, _ := params.Palette.ListColors[funcIndex].RGBA()
 		col, ok := resTmp[coords]
-		if ok {
-			resTmp[coords] = triplet{(col.R + float64(fr)/256) / 2, (col.G + float64(fg)/256) / 2, (col.B + float64(fb)/256) / 2, col.A + 1}
-		} else {
-			resTmp[coords] = triplet{float64(fr) / 256, float64(fg) / 256, float64(fb) / 256, 1}
+		if i > 20 {
+			if ok {
+				resTmp[coords] = triplet{(col.R + float64(fr)/256) / 2, (col.G + float64(fg)/256) / 2, (col.B + float64(fb)/256) / 2, col.A + 1}
+			} else {
+				resTmp[coords] = triplet{float64(fr) / 256, float64(fg) / 256, float64(fb) / 256, 1}
+			}
 		}
 		col = resTmp[coords]
 		x = x1
@@ -140,7 +142,7 @@ func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[coords]color
 }
 
 func scaleFlame(x1 float64, y1 float64, imageParams params.ImageParams) coords {
-	x := x1 * float64(imageParams.Width)
-	y := y1 * float64(imageParams.Height)
+	x := (x1 + 1.0) * float64(imageParams.Width)
+	y := (y1 + 1.0) * float64(imageParams.Height)
 	return coords{int64(x), int64(y)}
 }
