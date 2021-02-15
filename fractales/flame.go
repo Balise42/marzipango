@@ -32,24 +32,39 @@ type ifsFunc func(float64, float64) (float64, float64)
 
 func createFlameFuncs() []ifsFunc {
 	V0 := func(x float64, y float64) (float64, float64) {
-		return x, y
+		sqr := math.Sqrt(x*x + y*y)
+		return 1/sqr * ((x-y)*(x+y)), 1/sqr * 2*x*y
 	}
 
 	V1 := func(x float64, y float64) (float64, float64) {
-		return 3 * math.Sin(x), 3 * math.Sin(y)
+		return math.Sin(x), y
 	}
 
 	V2 := func(x float64, y float64) (float64, float64) {
-		r2 := x*x + y*y
-		return 1 / r2 * x, 1 / r2 * y
+		sqr := math.Sqrt(x*x + y*y)
+		theta := math.Atan(x / y)
+		return 1/sqr * (math.Cos(theta) + math.Sin(sqr)), 1/sqr * (math.Sin(theta) - math.Cos(sqr))
 	}
 
 	V3 := func(x float64, y float64) (float64, float64) {
-		r2 := x*x + y*y
-		return x*math.Sin(r2) - y*math.Cos(r2), x*math.Cos(r2) + y*math.Sin(r^2)
+		if x >= 0 && y >= 0 {
+			return x, y
+		} else if x < 0 && y >= 0 {
+			return 2*x, y
+		} else if x >= 0 && y < 0 {
+			return x, y/2
+		} else {
+			return 2*x, y/2
+		}
 	}
 
-	return []ifsFunc{V0, V1, V2, V3}
+	V4 := func(x float64, y float64) (float64, float64) {
+		sqr := math.Sqrt(x*x + y*y)
+		theta := math.Atan(x / y)
+		return math.Sin(theta) * math.Cos(sqr), math.Cos(theta) * math.Sin(sqr)
+	}
+
+	return []ifsFunc{V0, V1, V2, V3, V4}
 }
 
 type triplet struct {
@@ -59,86 +74,96 @@ type triplet struct {
 	A float64
 }
 
-func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[coords]color.RGBA {
-	res := make(map[coords]color.RGBA)
+func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[coords]color.NRGBA {
+	imgRes := make(map[coords]color.NRGBA)
 	x := float64(0)
 	y := float64(0)
+	rf := []float64{1.0, 1.0, 1.0, 1.0, 1.0}
+	gf := []float64{0.0, 0.1, 0.2, 0.3, 0.4}
+	bf := []float64{0, 0, 0, 0, 0}
 
-	resTmp := make(map[coords]triplet)
-	for i := 0; i < 5000000; i++ {
+	histo := make(map[coords]int)
+	cols := make(map[coords]triplet)
+	col := triplet{1.0, 0, 0, 0}
+
+	maxValue := 0
+
+	for i := 0; i < 500000000; i++ {
 		rule := rand.Float32()
 		var a, b, c, d, e, f float64
 		var funcIndex int
-		if rule < 0.05 {
-			a = 0.1
-			b = 0.3
-			c = 0.4
-			d = 0.16
-			e = 0.1
-			f = 0.4
+		if rule < 0.08 {
+			a = -0.98
+			b = -0.12
+			c = -0.6
+			d = 0.01
+			e = -0.028
+			f = 0.07
 			funcIndex = 0
-		} else if rule < 0.86 {
-			a = 0.85
-			b = 0.04
-			c = -0.04
-			d = 0.85
-			e = -0.4
-			f = 1.6
+		} else if rule < 0.8 {
+			a = -0.5
+			b = 0.43
+			c = -0.06
+			d = -0.44
+			e = -0.09
+			f = -0.88
 			funcIndex = 1
-		} else if rule < 0.93 {
-			a = -0.15
-			b = 0.28
-			c = 0.26
-			d = 0.24
-			e = 0.2
-			f = 0.44
+		} else if rule < 0.85 {
+			a = 0.18
+			b = -0.12
+			c = -0.18
+			d = 0.04
+			e = 0.18
+			f = 0.40
 			funcIndex = 2
-		} else {
-			a = 0.20
-			b = -0.26
-			c = 0.23
-			d = 0.22
-			e = -0.1
-			f = 1.6
+		} else if rule < 0.87 {
+			a = 1.62
+			b = 1.03
+			c = 0.59
+			d = -0.66
+			e = 0.25
+			f = -0.72
 			funcIndex = 3
+		} else {
+			a = 0.02
+			b = 0.13
+			c = -1.17
+			d = -1.44
+			e = -0.17
+			f = -0.14
+			funcIndex = 4
 		}
 		x1 := a*x + b*y + e
 		y1 := c*x + d*y + f
 		x1, y1 = funcs[funcIndex](x1, y1)
+
 		coords := scaleFlame(x1, y1, params)
-		fr, fg, fb, _ := params.Palette.ListColors[funcIndex].RGBA()
-		col, ok := resTmp[coords]
+		//col := cols[coords]
+		col = triplet{ (col.R + rf[funcIndex]) / 2, col.G + gf[funcIndex], col.B + bf[funcIndex], 1.0 }
+		cols[coords] = col
 		if i > 20 {
-			if ok {
-				resTmp[coords] = triplet{(col.R + float64(fr)/256) / 2, (col.G + float64(fg)/256) / 2, (col.B + float64(fb)/256) / 2, col.A + 1}
-			} else {
-				resTmp[coords] = triplet{float64(fr) / 256, float64(fg) / 256, float64(fb) / 256, 1}
+			histo[coords] = histo[coords] + 1
+			cols[coords] = col
+			if histo[coords] > maxValue {
+				maxValue = histo[coords]
 			}
 		}
-		col = resTmp[coords]
 		x = x1
 		y = y1
 	}
 
-	maxAlpha := 0.0
-	for _, v := range resTmp {
-		if v.A > maxAlpha {
-			maxAlpha = v.A
+
+	for k, col := range cols {
+		alpha := math.Log(float64(histo[k]) + 1) / math.Log(float64(maxValue) + 1)
+		if alpha < 0 {
+			alpha = 0
 		}
+		tmpR := col.R//math.Pow(col.R * alpha, 0.5)
+		tmpG := col.G//math.Pow(col.G * alpha, 0.5)
+		tmpB := col.B//math.Pow(col.B * alpha, 0.5)
+		imgRes[k] = color.NRGBA{R: uint8(tmpR * 255), G: uint8(tmpG * 255), B: uint8(tmpB * 255), A: uint8((alpha) * 255)}
 	}
-
-
-	for k, v := range resTmp {
-		scale := math.Log2(v.A) / v.A
-		cr := uint8(v.R * scale * 256)
-		cg := uint8(v.G * scale * 256)
-		cb := uint8(v.B * scale * 256)
-
-		alpha := uint8((math.Log2(v.A) / math.Log2(maxAlpha)) * 255)
-
-		res[k] = color.RGBA{R: cr, G: cg, B: cb, A: alpha}
-	}
-	return res
+	return imgRes
 }
 
 func scaleFlame(x1 float64, y1 float64, imageParams params.ImageParams) coords {
