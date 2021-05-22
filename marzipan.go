@@ -62,14 +62,21 @@ func generateVideo(w io.Writer, imageParams params.ImageParams) error {
 	deltaX := math.Abs(left - right)
 	deltaY := math.Abs(top - bottom)
 
-	for  i := 0; i < 200; i++ {
-		imageParams.Left = left + float64(i)  / 2 * deltaX / 200
-		imageParams.Right = right - float64(i) / 2 * deltaX / 200
-		imageParams.Top = top + float64(i) / 2 * deltaY / 200
-		imageParams.Bottom = bottom - float64(i) / 2 * deltaY / 200
+	for i := 0; i < 200; i++ {
+
+		left = imageParams.Left
+		right = imageParams.Right
+		top = imageParams.Top
+		bottom = imageParams.Bottom
+		deltaX = math.Abs(left - right)
+		deltaY = math.Abs(top - bottom)
+
+		imageParams.Left = left + 1.0/2*deltaX/20
+		imageParams.Right = right - 1.0/2*deltaX/20
+		imageParams.Top = top + 1.0/2*deltaY/20
+		imageParams.Bottom = bottom - 1.0/2*deltaY/20
 		comp := parsing.ComputerFromParameters(imageParams)
 		img := generateImage(imageParams, comp)
-
 
 		buf := &bytes.Buffer{}
 		err = jpeg.Encode(buf, img, nil)
