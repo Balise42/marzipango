@@ -1,6 +1,7 @@
 package fractales
 
 import (
+	"github.com/Balise42/marzipango/fractales/orbits"
 	"github.com/Balise42/marzipango/params"
 	"math/rand"
 )
@@ -10,7 +11,7 @@ func SierpValueComputeLow(params params.ImageParams) ValueComputation {
 	ifsMap := createSierpMap(params, sierpFuncs)
 
 	return func(x int, y int) (float64, bool) {
-		val, ok := ifsMap[coords{int64(x),int64(y)}]
+		val, ok := ifsMap[orbits.Coords{int64(x),int64(y)}]
 		if !ok {
 			return 0, false
 		} else {
@@ -19,8 +20,8 @@ func SierpValueComputeLow(params params.ImageParams) ValueComputation {
 	}
 }
 
-func createSierpMap(params params.ImageParams, funcs []ifsFunc) map[coords]float64 {
-	res := make(map[coords]float64)
+func createSierpMap(params params.ImageParams, funcs []ifsFunc) map[orbits.Coords]float64 {
+	res := make(map[orbits.Coords]float64)
 	x := float64(0)
 	y := float64(0)
 

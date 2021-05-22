@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"image"
+	"image/jpeg"
 	"image/png"
 	"io"
 	"log"
@@ -18,6 +20,7 @@ import (
 	"github.com/Balise42/marzipango/fractales"
 	"github.com/Balise42/marzipango/params"
 	"github.com/Balise42/marzipango/parsing"
+	"github.com/icza/mjpeg"
 )
 
 var (
@@ -26,7 +29,7 @@ var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 )
 
-func generateImage(w io.Writer, params params.ImageParams, comp fractales.Computation) error {
+func generateImage(params params.ImageParams, comp fractales.Computation) image.Image {
 	var wg sync.WaitGroup
 	img := image.NewRGBA64(image.Rect(0, 0, params.Width, params.Height))
 	for x := 0; x < params.Width; x++ {
@@ -40,15 +43,53 @@ func generateImage(w io.Writer, params params.ImageParams, comp fractales.Comput
 	}
 	wg.Wait()
 
-	return png.Encode(w, img)
+	return img
+}
+
+func generateVideo(w io.Writer, imageParams params.ImageParams) error {
+	aw, err := mjpeg.New("test.avi", int32(params.Width), int32(params.Height), 25)
+
+	if err != nil {
+		return err
+	}
+
+	for  i := 0; i < 500; i++ {
+		imageParams.Left = -2.0 + float64(i) / 500
+		imageParams.Right = 1.0 - float64(i) / 500
+		imageParams.Top = -1.0 + float64(i) / 500 * 2.0/3.0
+		imageParams.Bottom = 1.0 - float64(i) / 500 * 2.0/3.0
+		comp := parsing.ComputerFromParameters(imageParams)
+		img := generateImage(imageParams, comp)
+
+
+		buf := &bytes.Buffer{}
+		err = jpeg.Encode(buf, img, nil)
+		if err != nil {
+			return err
+		}
+
+		err = aw.AddFrame(buf.Bytes())
+		if err != nil {
+			return err
+		}
+	}
+
+	err = aw.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func fractale(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	comp, imageParams := parsing.ParseComputation(r)
+	imageParams := parsing.ParseImageParams(r)
+	comp := parsing.ComputerFromParameters(imageParams)
 
 	w.Header().Set("Content-Type", "image/png")
-	err := generateImage(w, imageParams, comp)
+	img := generateImage(imageParams, comp)
+	err := png.Encode(w, img)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -57,9 +98,25 @@ func fractale(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("in %s\n", time.Since(start))
 }
 
+func video(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	imageParams := parsing.ParseImageParams(r)
+
+	w.Header().Set("Content-Type", "image/png")
+	err := generateVideo(w, imageParams)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Print("Video served", imageParams)
+	fmt.Printf("in %s\n", time.Since(start))
+}
+
 func main() {
 	flag.Parse()
 	http.HandleFunc("/", fractale)
+	http.HandleFunc("/video/", video)
 	address := fmt.Sprintf("%s:%d", *hostname, *port)
 	fmt.Printf("Listening on http://%s ...\n", address)
 

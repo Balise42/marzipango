@@ -50,7 +50,7 @@ func MandelbrotContinuousValueComputerHigh(params params.ImageParams) ValueCompu
 }
 
 // MandelbrotOrbitValueLow returns the distance to the closest orbit hit by the computation of iterations corresponding to a complex in the Mandelbrot set in low precision
-func MandelbrotOrbitValueLow(c complex128, maxiter int, orbits []Orbit) (float64, bool) {
+func MandelbrotOrbitValueLow(c complex128, maxiter int, orbits []params.Orbit) (float64, bool) {
 	dist := math.MaxFloat64
 
 	var z complex128
@@ -58,7 +58,7 @@ func MandelbrotOrbitValueLow(c complex128, maxiter int, orbits []Orbit) (float64
 	for i < maxiter && cmplx.Abs(z) < 4 {
 		z = z*z + c
 		for _, orbit := range orbits {
-			dist = math.Min(dist, orbit.getOrbitValue(orbit.getOrbitFastValue(z)))
+			dist = math.Min(dist, orbit.GetOrbitValue(orbit.GetOrbitFastValue(z)))
 		}
 		i++
 	}
@@ -71,7 +71,7 @@ func MandelbrotOrbitValueLow(c complex128, maxiter int, orbits []Orbit) (float64
 }
 
 // MandelbrotOrbitValueComputerLow returns a ValueComputation for the julia set with orbit trapping
-func MandelbrotOrbitValueComputerLow(params params.ImageParams, orbits []Orbit) ValueComputation {
+func MandelbrotOrbitValueComputerLow(params params.ImageParams, orbits []params.Orbit) ValueComputation {
 	return func(x int, y int) (float64, bool) {
 		return MandelbrotOrbitValueLow(scale(x, y, params), params.MaxIter, orbits)
 	}

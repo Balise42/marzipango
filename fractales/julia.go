@@ -47,7 +47,7 @@ func JuliaContinuousValueComputerHigh(params params.ImageParams) ValueComputatio
 }
 
 // JuliaOrbitValueLow returns the distance to the closest orbit hit by the computation of iterations corresponding to a complex in the Julia set in low precision
-func JuliaOrbitValueLow(z complex128, maxiter int, orbits []Orbit) (float64, bool) {
+func JuliaOrbitValueLow(z complex128, maxiter int, orbits []params.Orbit) (float64, bool) {
 	dist := math.MaxFloat64
 
 	c := -0.4 + 0.6i
@@ -56,7 +56,7 @@ func JuliaOrbitValueLow(z complex128, maxiter int, orbits []Orbit) (float64, boo
 	for i < maxiter && cmplx.Abs(z) < 4 {
 		z = z*z + c
 		for _, orbit := range orbits {
-			dist = math.Min(dist, orbit.getOrbitValue(orbit.getOrbitFastValue(z)))
+			dist = math.Min(dist, orbit.GetOrbitValue(orbit.GetOrbitFastValue(z)))
 		}
 		i++
 	}
@@ -69,7 +69,7 @@ func JuliaOrbitValueLow(z complex128, maxiter int, orbits []Orbit) (float64, boo
 }
 
 // JuliaOrbitValueComputerLow returns a ValueComputation for the julia set with orbit trapping
-func JuliaOrbitValueComputerLow(params params.ImageParams, orbits []Orbit) ValueComputation {
+func JuliaOrbitValueComputerLow(params params.ImageParams, orbits []params.Orbit) ValueComputation {
 	return func(x int, y int) (float64, bool) {
 		return JuliaOrbitValueLow(scale(x, y, params), params.MaxIter, orbits)
 	}

@@ -10,28 +10,28 @@ import (
 )
 
 func scale(x int, y int, pos params.ImageParams) complex128 {
-	real := pos.Left + float64(x)/float64(pos.Width)*(pos.Right-pos.Left)
+	re := pos.Left + float64(x)/float64(pos.Width)*(pos.Right-pos.Left)
 	im := pos.Top + float64(y)/float64(pos.Height)*(pos.Bottom-pos.Top)
 
-	return complex(real, im)
+	return complex(re, im)
 }
 
 func scaleHigh(x int, y int, pos params.ImageParams) LargeComplex {
 	ratioX := float64(x) / float64(pos.Width)
 
-	real := big.NewFloat(0)
-	real.Sub(big.NewFloat(pos.Right), big.NewFloat(pos.Left))
-	real.Mul(big.NewFloat(float64(ratioX)), real)
-	real.Add(real, big.NewFloat(pos.Left))
+	re := big.NewFloat(0)
+	re.Sub(big.NewFloat(pos.Right), big.NewFloat(pos.Left))
+	re.Mul(big.NewFloat(float64(ratioX)), re)
+	re.Add(re, big.NewFloat(pos.Left))
 
 	ratioY := float64(y) / float64(pos.Height)
 
-	imag := big.NewFloat(0)
-	imag.Sub(big.NewFloat(pos.Bottom), big.NewFloat(pos.Top))
-	imag.Mul(big.NewFloat(ratioY), imag)
-	imag.Add(imag, big.NewFloat(pos.Top))
+	im := big.NewFloat(0)
+	im.Sub(big.NewFloat(pos.Bottom), big.NewFloat(pos.Top))
+	im.Mul(big.NewFloat(ratioY), im)
+	im.Add(im, big.NewFloat(pos.Top))
 
-	return LargeComplex{real, imag}
+	return LargeComplex{re, im}
 }
 
 // Computation fills in image pixels according to parameters

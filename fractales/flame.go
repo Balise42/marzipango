@@ -1,6 +1,7 @@
 package fractales
 
 import (
+	"github.com/Balise42/marzipango/fractales/orbits"
 	"github.com/Balise42/marzipango/params"
 	"image"
 	"image/color"
@@ -9,13 +10,13 @@ import (
 	"sync"
 )
 
-func CreateFlameComputer(params params.ImageParams) (Computation, params.ImageParams) {
+func CreateFlameComputer(params params.ImageParams) Computation {
 	flameFuncs := createFlameFuncs()
 	ifsMap := createFlameMap(params, flameFuncs)
 
 	comp := func(x int, ymin int, ymax int, img *image.RGBA64, wg *sync.WaitGroup) {
 		for y := ymin; y < ymax; y++ {
-			val, ok := ifsMap[coords{int64(x), int64(y)}]
+			val, ok := ifsMap[orbits.Coords{int64(x), int64(y)}]
 			if ok {
 				img.Set(x, y, val)
 			} else {
@@ -25,7 +26,7 @@ func CreateFlameComputer(params params.ImageParams) (Computation, params.ImagePa
 		wg.Done()
 	}
 
-	return comp, params
+	return comp
 }
 
 type ifsFunc func(float64, float64) (float64, float64)
@@ -74,16 +75,16 @@ type triplet struct {
 	A float64
 }
 
-func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[coords]color.NRGBA {
-	imgRes := make(map[coords]color.NRGBA)
+func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[orbits.Coords]color.NRGBA {
+	imgRes := make(map[orbits.Coords]color.NRGBA)
 	x := float64(0)
 	y := float64(0)
 	rf := []float64{1.0, 1.0, 1.0, 1.0, 1.0}
 	gf := []float64{0.0, 0.1, 0.2, 0.3, 0.4}
 	bf := []float64{0, 0, 0, 0, 0}
 
-	histo := make(map[coords]int)
-	cols := make(map[coords]triplet)
+	histo := make(map[orbits.Coords]int)
+	cols := make(map[orbits.Coords]triplet)
 	col := triplet{1.0, 0, 0, 0}
 
 	maxValue := 0
@@ -166,8 +167,8 @@ func createFlameMap(params params.ImageParams, funcs []ifsFunc) map[coords]color
 	return imgRes
 }
 
-func scaleFlame(x1 float64, y1 float64, imageParams params.ImageParams) coords {
+func scaleFlame(x1 float64, y1 float64, imageParams params.ImageParams) orbits.Coords {
 	x := (x1 + 1.0) * float64(imageParams.Width)
 	y := (y1 + 1.0) * float64(imageParams.Height)
-	return coords{int64(x), int64(y)}
+	return orbits.Coords{int64(x), int64(y)}
 }

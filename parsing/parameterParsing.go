@@ -1,6 +1,7 @@
 package parsing
 
 import (
+	"github.com/Balise42/marzipango/fractales/orbits"
 	"image/color"
 	"net/http"
 	"regexp"
@@ -72,7 +73,7 @@ func parseImageCoords(r *http.Request) (float64, float64, float64, float64) {
 	return parseFloatParam(r, "left", params.Left), parseFloatParam(r, "right", params.Right), parseFloatParam(r, "top", params.Top), parseFloatParam(r, "bottom", params.Bottom)
 }
 
-func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit, imageParams params.ImageParams) fractales.Orbit {
+func parseOrbit(rawOrbit string, defaultOrbit params.Orbit, imageParams params.ImageParams) params.Orbit {
 	if strings.HasPrefix(rawOrbit, "point(") {
 		paramString := strings.TrimSuffix(strings.TrimPrefix(rawOrbit, "point("), ")")
 		params := strings.Split(paramString, ",")
@@ -92,7 +93,7 @@ func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit, imageParams param
 		if err != nil {
 			return defaultOrbit
 		}
-		return fractales.CreatePointOrbit(x, y, dist)
+		return orbits.CreatePointOrbit(x, y, dist)
 	} else if strings.HasPrefix(rawOrbit, "line(") {
 		paramString := strings.TrimSuffix(strings.TrimPrefix(rawOrbit, "line("), ")")
 		params := strings.Split(paramString, ",")
@@ -115,7 +116,7 @@ func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit, imageParams param
 		if err != nil {
 			return defaultOrbit
 		}
-		return fractales.CreateLineOrbit(a, b, c, dist)
+		return orbits.CreateLineOrbit(a, b, c, dist)
 	} else if strings.HasPrefix(rawOrbit, "raster(") {
 		paramString := strings.TrimSuffix(strings.TrimPrefix(rawOrbit, "raster("), ")")
 		params := strings.Split(paramString, ",")
@@ -141,7 +142,7 @@ func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit, imageParams param
 			}
 		}
 
-		orbit, err := fractales.CreateImageOrbit(imageParams, path, dist)
+		orbit, err := orbits.CreateImageOrbit(imageParams, path, dist)
 		if err != nil {
 			return defaultOrbit
 		}
@@ -151,17 +152,17 @@ func parseOrbit(rawOrbit string, defaultOrbit fractales.Orbit, imageParams param
 	return defaultOrbit
 }
 
-func parseOrbits(r *http.Request, params params.ImageParams) ([]fractales.Orbit, bool) {
+func parseOrbits(r *http.Request, imageParams params.ImageParams) ([]params.Orbit, bool) {
 	rawOrbits, ok := r.URL.Query()["orbit"]
-	defaultOrbit := fractales.CreatePointOrbit(0.5, -0.7, float64(100))
+	defaultOrbit := orbits.CreatePointOrbit(0.5, -0.7, float64(100))
 
 	if !ok {
-		return []fractales.Orbit{defaultOrbit}, false
+		return []params.Orbit{defaultOrbit}, false
 	}
-	orbits := make([]fractales.Orbit, len(rawOrbits))
+	orbits := make([]params.Orbit, len(rawOrbits))
 
 	for i, orbit := range rawOrbits {
-		orbits[i] = parseOrbit(orbit, defaultOrbit, params)
+		orbits[i] = parseOrbit(orbit, defaultOrbit, imageParams)
 	}
 	return orbits, true
 }
@@ -182,8 +183,8 @@ func highPrecision(params params.ImageParams) bool {
 	return len(coords) < params.Width-5
 }
 
-// ParseComputation parses the request parameters to dispatch the computation and the parameters
-func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParams) {
+// ParseImageParams parses the request parameters to the computation parameters
+func ParseImageParams(r *http.Request) params.ImageParams {
 	imgWidth, imgHeight := parseImageSize(r)
 	imgLeft, imgRight, imgTop, imgBottom := parseImageCoords(r)
 	imgMaxIter := parseIntParam(r, "maxiter", params.Maxiter)
@@ -195,14 +196,26 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 
 	power := parseFloatParam(r, "power", 2)
 
-	imageParams := params.ImageParams{Left: imgLeft, Right: imgRight, Top: imgTop, Bottom: imgBottom, Width: imgWidth, Height: imgHeight, MaxIter: imgMaxIter, Palette: imgPalette, Power: power}
-
 	fractaleType := parseFractaleType(r, "mandelbrot")
 
-	orbits, hasOrbits := parseOrbits(r, imageParams)
+	imageParams := params.ImageParams{Left: imgLeft, Right: imgRight, Top: imgTop, Bottom: imgBottom, Width: imgWidth, Height: imgHeight, MaxIter: imgMaxIter, Palette: imgPalette, Power: power, Type: fractaleType}
 
+	orbits, hasOrbits := parseOrbits(r, imageParams)
+	if hasOrbits {
+		imageParams.Orbits = orbits
+	}
+
+	return imageParams
+}
+
+func ComputerFromParameters(imageParams params.ImageParams) fractales.Computation {
+	colorPixel := palettes.ContinuousColoring(imageParams.Palette)
 	var valueComputer fractales.ValueComputation
-	var colorPixel = palettes.ContinuousColoring(imgPalette)
+
+	fractaleType := imageParams.Type
+	orbits := imageParams.Orbits
+	hasOrbits := len(orbits) > 0
+	power := imageParams.Power
 
 	if !highPrecision(imageParams) {
 		if fractaleType == "julia" {
@@ -234,5 +247,5 @@ func ParseComputation(r *http.Request) (fractales.Computation, params.ImageParam
 		}
 	}
 
-	return fractales.CreateComputer(valueComputer, colorPixel, imageParams), imageParams
+	return fractales.CreateComputer(valueComputer, colorPixel, imageParams)
 }

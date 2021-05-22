@@ -1,4 +1,4 @@
-package fractales
+package orbits
 
 import (
 	"image"
@@ -9,11 +9,6 @@ import (
 
 	"github.com/Balise42/marzipango/params"
 )
-
-type Orbit interface {
-	getOrbitFastValue(z complex128) float64
-	getOrbitValue(v float64) float64
-}
 
 type PointOrbit struct {
 	X           float64
@@ -31,7 +26,7 @@ type LineOrbit struct {
 	Factor      float64
 }
 
-type coords struct {
+type Coords struct {
 	X int64
 	Y int64
 }
@@ -42,7 +37,7 @@ type coordsFloat struct {
 }
 
 type ImageOrbit struct {
-	Distances   map[coords]float64
+	Distances   map[Coords]float64
 	Translation float64
 	Factor      float64
 	Width       int
@@ -71,11 +66,11 @@ func CreatePointOrbit(x float64, y float64, maxvalue float64) PointOrbit {
 	return orbit
 }
 
-func (p PointOrbit) getOrbitFastValue(z complex128) float64 {
+func (p PointOrbit) GetOrbitFastValue(z complex128) float64 {
 	return p.squaredDistance(z)
 }
 
-func (p PointOrbit) getOrbitValue(v float64) float64 {
+func (p PointOrbit) GetOrbitValue(v float64) float64 {
 	return (math.Sqrt(v) - p.Translation) * p.Factor
 }
 
@@ -88,15 +83,15 @@ func CreateLineOrbit(a float64, b float64, c float64, maxvalue float64) LineOrbi
 	orbit.Sqrtab = math.Sqrt(a*a + b*b)
 
 	minDist := 0.0
-	maxDist := orbit.getOrbitFastValue(-2 - 1i)
+	maxDist := orbit.GetOrbitFastValue(-2 - 1i)
 
-	maxDist = math.Max(maxDist, orbit.getOrbitFastValue(-2+1i))
-	maxDist = math.Max(maxDist, orbit.getOrbitFastValue(1+1i))
-	maxDist = math.Max(maxDist, orbit.getOrbitFastValue(1-1i))
+	maxDist = math.Max(maxDist, orbit.GetOrbitFastValue(-2+1i))
+	maxDist = math.Max(maxDist, orbit.GetOrbitFastValue(1+1i))
+	maxDist = math.Max(maxDist, orbit.GetOrbitFastValue(1-1i))
 
-	minDist = math.Min(minDist, orbit.getOrbitFastValue(-2+1i))
-	minDist = math.Min(minDist, orbit.getOrbitFastValue(1+1i))
-	minDist = math.Min(minDist, orbit.getOrbitFastValue(1-1i))
+	minDist = math.Min(minDist, orbit.GetOrbitFastValue(-2+1i))
+	minDist = math.Min(minDist, orbit.GetOrbitFastValue(1+1i))
+	minDist = math.Min(minDist, orbit.GetOrbitFastValue(1-1i))
 
 	maxDist = math.Sqrt(maxDist) / orbit.Sqrtab
 	minDist = math.Sqrt(minDist) / orbit.Sqrtab
@@ -107,12 +102,12 @@ func CreateLineOrbit(a float64, b float64, c float64, maxvalue float64) LineOrbi
 	return orbit
 }
 
-func (l LineOrbit) getOrbitFastValue(z complex128) float64 {
+func (l LineOrbit) GetOrbitFastValue(z complex128) float64 {
 	lineCoeff := l.A*real(z) + l.B*imag(z) + l.C
 	return lineCoeff * lineCoeff
 }
 
-func (l LineOrbit) getOrbitValue(v float64) float64 {
+func (l LineOrbit) GetOrbitValue(v float64) float64 {
 	return (math.Sqrt(v)/l.Sqrtab - l.Translation) * l.Factor
 }
 
@@ -181,7 +176,7 @@ func transpose(field [][]float64) [][]float64 {
 	return transposed
 }
 
-func computeEdt(img image.Image, width int, height int, maxvalue int) map[coords]float64 {
+func computeEdt(img image.Image, width int, height int, maxvalue int) map[Coords]float64 {
 
 	field := make([][]float64, width+maxvalue*2)
 	for x := range field {
@@ -212,11 +207,11 @@ func computeEdt(img image.Image, width int, height int, maxvalue int) map[coords
 
 func doNothing(x int, y int) {}
 
-func convertField(field [][]float64, offsetX int, offsetY int) map[coords]float64 {
-	offsetField := make(map[coords]float64)
+func convertField(field [][]float64, offsetX int, offsetY int) map[Coords]float64 {
+	offsetField := make(map[Coords]float64)
 	for x := range field {
 		for y := range field[x] {
-			offsetField[coords{int64(x - offsetX), int64(y - offsetY)}] = math.Sqrt(field[x][y])
+			offsetField[Coords{int64(x - offsetX), int64(y - offsetY)}] = math.Sqrt(field[x][y])
 		}
 	}
 	return offsetField
@@ -251,7 +246,7 @@ func CreateImageOrbit(params params.ImageParams, path string, maxvalue float64) 
 	return ImageOrbit{Distances: distances, Factor: factor, Translation: translation, Width: img.Bounds().Dx(), Height: img.Bounds().Dy()}, nil
 }
 
-func (im ImageOrbit) getOrbitFastValue(z complex128) float64 {
+func (im ImageOrbit) GetOrbitFastValue(z complex128) float64 {
 	x := real(z)
 	y := imag(z)
 
@@ -266,7 +261,7 @@ func (im ImageOrbit) getOrbitFastValue(z complex128) float64 {
 	xImg := x*xFactor + xOffset/xFactor
 	yImg := y*yFactor + yOffset/yFactor
 
-	dist, ok := im.Distances[coords{int64(xImg), int64(yImg)}]
+	dist, ok := im.Distances[Coords{int64(xImg), int64(yImg)}]
 
 	if !ok {
 		return math.MaxInt64
@@ -274,7 +269,7 @@ func (im ImageOrbit) getOrbitFastValue(z complex128) float64 {
 	return dist
 }
 
-func (im ImageOrbit) getOrbitValue(v float64) float64 {
+func (im ImageOrbit) GetOrbitValue(v float64) float64 {
 	if v == math.MaxInt64 {
 		return math.MaxInt64
 	}

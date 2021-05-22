@@ -1,6 +1,7 @@
 package fractales
 
 import (
+	"github.com/Balise42/marzipango/fractales/orbits"
 	"github.com/Balise42/marzipango/params"
 	"math/rand"
 )
@@ -11,7 +12,7 @@ func FernValueComputeLow(params params.ImageParams) ValueComputation {
 	ifsMap := createFernMap(params)
 	
 	return func(x int, y int) (float64, bool) {
-		val, ok := ifsMap[coords{int64(x), int64(y)}]
+		val, ok := ifsMap[orbits.Coords{int64(x), int64(y)}]
 		if ok {
 			return float64(val), true
 		}
@@ -19,8 +20,8 @@ func FernValueComputeLow(params params.ImageParams) ValueComputation {
 	}
 }
 
-func createFernMap(params params.ImageParams) map[coords]int {
-	res := make(map[coords]int)
+func createFernMap(params params.ImageParams) map[orbits.Coords]int {
+	res := make(map[orbits.Coords]int)
 	x := float64(0)
 	y := float64(0)
 	res[scaleFern(x, y, params)] = 1
@@ -72,8 +73,8 @@ func createFernMap(params params.ImageParams) map[coords]int {
 	return res
 }
 
-func scaleFern(x1 float64, y1 float64, imageParams params.ImageParams) coords {
+func scaleFern(x1 float64, y1 float64, imageParams params.ImageParams) orbits.Coords {
 	x := (x1 + 2.1820) * float64(imageParams.Width) / (2.1820 + 2.6558)
 	y := (9.9983 - y1) * float64(imageParams.Height) / 9.9983
-	return coords{int64(x), int64(y)}
+	return orbits.Coords{int64(x), int64(y)}
 }

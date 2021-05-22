@@ -1,6 +1,8 @@
 package params
 
-import "github.com/Balise42/marzipango/palettes"
+import (
+	"github.com/Balise42/marzipango/palettes"
+)
 
 const Left = -2.0
 const Right = 1.0
@@ -20,4 +22,12 @@ type ImageParams struct {
 	MaxIter int
 	Palette palettes.Colors
 	Power   float64
+	Type	string
+	Orbits []Orbit
 }
+
+type Orbit interface {
+	GetOrbitFastValue(z complex128) float64
+	GetOrbitValue(v float64) float64
+}
+
