@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -47,17 +48,25 @@ func generateImage(params params.ImageParams, comp fractales.Computation) image.
 }
 
 func generateVideo(w io.Writer, imageParams params.ImageParams) error {
-	aw, err := mjpeg.New("test.avi", int32(params.Width), int32(params.Height), 25)
+	aw, err := mjpeg.New("test.avi", int32(imageParams.Width), int32(imageParams.Height), 25)
 
 	if err != nil {
 		return err
 	}
 
-	for  i := 0; i < 500; i++ {
-		imageParams.Left = -2.0 + float64(i) / 500
-		imageParams.Right = 1.0 - float64(i) / 500
-		imageParams.Top = -1.0 + float64(i) / 500 * 2.0/3.0
-		imageParams.Bottom = 1.0 - float64(i) / 500 * 2.0/3.0
+	left := imageParams.Left
+	right := imageParams.Right
+	top := imageParams.Top
+	bottom := imageParams.Bottom
+
+	deltaX := math.Abs(left - right)
+	deltaY := math.Abs(top - bottom)
+
+	for  i := 0; i < 200; i++ {
+		imageParams.Left = left + float64(i)  / 2 * deltaX / 200
+		imageParams.Right = right - float64(i) / 2 * deltaX / 200
+		imageParams.Top = top + float64(i) / 2 * deltaY / 200
+		imageParams.Bottom = bottom - float64(i) / 2 * deltaY / 200
 		comp := parsing.ComputerFromParameters(imageParams)
 		img := generateImage(imageParams, comp)
 
